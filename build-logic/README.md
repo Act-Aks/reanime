@@ -11,12 +11,16 @@ It defines:
 
 - External library/plugin versions and plugin implementation dependencies.
 - Compile/minimum/target SDK levels and JVM toolchain.
+- Compile-SDK minor level and the Gradle runtime JDK (`projectBuildJavaVersion`),
+  separately from the compilation toolchain (`projectJavaVersion`).
 - Application display name, application ID, and development version metadata.
 - Versionless `reanime-*` aliases for our convention plugins.
 
 The Gradle wrapper version/checksum remains in its standard wrapper properties.
-The CI workflow reads JVM/compile-SDK settings from the catalog rather than
-duplicating those values. Release version overrides/allocation are not implemented;
+The CI workflow reads runtime/toolchain JDKs and the full compile-SDK version from
+the catalog, installs the exact SDK package, and exposes both JDKs to Gradle.
+Current settings are build JDK 21, toolchain 17, compile SDK 37.0, target 36, and
+minimum 26. Release version overrides/allocation are not implemented;
 the current catalog version is a development value, not a release allocator.
 
 ## How it works
@@ -54,7 +58,8 @@ actually exist; do not create unused plugin scaffolding.
 3. Implement a focused class under `com.reanime.convention` using catalog helpers.
 4. Register its ID from the catalog and its implementation class in `gradlePlugin`.
 5. Apply the versionless alias in the consuming module.
-6. Format, run `./gradlew verifyFoundation` from the repository root, and update docs.
+6. Format, run `./gradlew verifyFoundation verifyRelease` from the repository root,
+   and update docs. Run CI helper tests when changing SDK/JDK/package handling.
 
 Never reintroduce precompiled `.gradle.kts` convention plugins or hardcoded SDK/
 dependency versions inside plugin classes. Application-specific namespace and
@@ -68,7 +73,7 @@ foundation gate. Formatting is explicit; CI never edits source.
 
 Detekt 1.23.8 runs in an isolated CLI process because its stable Gradle integration
 targets an older AGP/Kotlin combination. It is syntax-only: Kotlin compilation and
-Android Lint are still required, and Kotlin 2.3 type analysis is not claimed.
+Android Lint are still required, and current Kotlin compiler type analysis is not claimed.
 
 Android Lint warnings fail verification, except dependency/tool upgrade advice is
 kept visible as informational (`GradleDependency`, `NewerVersionAvailable`, and

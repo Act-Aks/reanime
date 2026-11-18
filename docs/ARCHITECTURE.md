@@ -1,7 +1,7 @@
 # Re:ANIME Android architecture
 
-Status: minimal foundation implemented; earlier baseline verified, current dependency
-upgrade snapshot blocked by compile-SDK compatibility. Source/media features unverified.
+Status: minimal foundation and CI refinements locally verified; hosted CI rerun
+pending push. Source/media features remain unverified.
 
 This document records agreed requirements, recommended implementation choices,
 and outstanding validation. `AGENTS.md` provides day-to-day contribution rules.
@@ -18,8 +18,8 @@ plugin system.
 - Display name: **ReAnime**.
 - Release application ID: **com.reanime.app**.
 - Debug application ID: **com.reanime.app.debug**.
-- GitHub repository: not created yet. Local development and PR workflow definitions
-  can proceed; release publishing and update discovery remain unconfigured.
+- GitHub repository: `https://github.com/Act-Aks/reanime` (public, default branch `main`).
+  Release publishing/signing and update discovery remain unconfigured.
 - Application naming does not establish permission to use website branding/assets.
 
 ### Version-one requirements
@@ -360,11 +360,17 @@ Initial compatibility baseline: Gradle 9.4.1, AGP 9.2.1, Kotlin 2.3.0, JDK 21,
 compile/target API 36, minimum API 26, and Compose BOM 2026.03.00. Kotlin aligns
 with this Gradle version's embedded Kotlin for convention compilation. These are
 explicit compatible choices, not a claim that every dependency is the newest release.
-The official Gradle wrapper JAR and distribution checksums are verified/pinned.
+This describes the earlier verified baseline, not the current catalog. The current
+baseline uses Gradle 9.9.1, AGP 9.5.1, Kotlin 2.4.21, Compose BOM 2026.09.00,
+build JDK 21, compilation toolchain 17, compile SDK 37.0, target SDK 36, and
+minimum SDK 26. Runtime/toolchain JDKs are intentionally separate catalog settings.
+The wrapper distribution checksum is restored and setup-gradle validates official
+wrapper JAR checksums. The existing official wrapper JAR need not have the same
+version as its selected distribution.
 
 Stable Detekt 1.23.8 runs as an isolated CLI for syntax-only checks, avoiding its
 older Gradle/AGP integration and compiler classpath conflicts. It does not provide
-Kotlin 2.3 type-resolution checks; compiler and Android Lint checks remain required.
+current Kotlin compiler type-resolution checks; compiler and Android Lint checks remain required.
 Re-evaluate this integration when a compatible stable Detekt plugin is available.
 
 - Gradle wrapper, Kotlin DSL, centralized repositories, version catalog, and
@@ -395,6 +401,31 @@ Validate wrapper/toolchain, formatting, static analysis, all relevant JVM unit t
 Android Lint, and debug assembly. Non-Android/build-logic tests must not be omitted
 just because `:app:testDebugUnitTest` passes. Publish useful sanitized test reports.
 Run instrumented tests on an appropriate separate job as they become available.
+
+Current workflow improvements:
+
+- PR (including title edits), `main` push, merge-group, and manual triggers.
+- An independent conventions job tests the Python helpers and validates PR titles
+  using an environment variable, not untrusted shell interpolation.
+- A dependent Android job reads validated catalog values before Gradle setup;
+  explicitly installs command-line tools/licenses and the canonical SDK package
+  (`platforms;android-37.0`, not nonexistent `platforms;android-37`).
+- Both JDKs are installed; the build runtime is last/active, and Gradle receives
+  the toolchain environment-variable names for deterministic discovery.
+- Checksum-pinned wrapper distribution, wrapper-JAR validation, pinned action SHAs,
+  read-only contents permission, and cache writes restricted to `main` pushes.
+- `verifyFoundation` checks every current Android module's debug unit-test task,
+  plus existing formatting/Detekt/lint/debug assembly and included-build checks.
+- `verifyRelease` checks full release lint and unsigned minified/resource-shrunk
+  assembly. It does not publish or access signing secrets.
+- Failure reports are retained for seven days unless cancelled; only successful
+  `main` pushes upload a debug APK, not PR or unsigned release APKs.
+- Dependabot uses Conventional Commit prefixes so its PR titles pass the same
+  validation. The final `CI` job requires both conventions and Android verification
+  to succeed, preventing a skipped dependent job from hiding an earlier failure.
+  Configure that stable `CI` check as required in GitHub after it first runs.
+- Add new module report/test tasks when modules land. Device/emulator tests remain
+  pending, and required checks/merge settings must be configured by a repo admin.
 
 ### Protected release pipeline
 
@@ -469,17 +500,28 @@ actual evidence as implementation proceeds.
 - During initial Git setup, the upgraded snapshot (Gradle 9.9.1, AGP 9.5.1, Kotlin
   2.4.21, Compose BOM 2026.09.00, Lifecycle 2.11.0, JVM 17) failed AAR metadata checks:
   Compose/Lifecycle require compile SDK 37+, but the catalog still specifies 36.
-  These existing configuration changes were preserved. Current verification is
-  not green; reconcile the SDK/toolchain and rerun checks before integrating releases.
-- CI/dependency-update workflows are defined but have not run on GitHub because
-  no remote repository exists. No release workflow, signing, or updater is implemented.
+  These existing configuration changes were preserved at initialization. The CI
+  refinement raises compile SDK to 37.0 without changing target SDK or reverting
+  the user's dependency upgrades.
+- GitHub run `44305245950` failed before Gradle because `sdkmanager` was absent from
+  PATH. Explicit SDK-tools setup fixes that workflow gap; changes need a push and
+  a new hosted run to establish GitHub success.
+- Final local verification passed `./gradlew verifyFoundation verifyRelease
+  --console=plain --continue`, including all five browse tests, debug/release lint,
+  debug assembly, R8, and release resource shrinking with compile SDK 37.0.
+- All 12 CI-helper test methods passed. Actionlint 1.7.12 validated workflow syntax,
+  expressions, and action inputs. ShellCheck was unavailable and its integration
+  was not run. These local checks do not claim a successful hosted SDK installation
+  or Linux build; the workflow still needs a new GitHub run after push.
+- No release workflow, release signing, or updater is implemented.
 - No emulator/physical-device, source playback, download, database, or upgrade
   compatibility results are claimed yet.
 
 ## 14. Decisions still required
 
 - Branding permissions (display name and application ID are confirmed above).
-- GitHub owner/repository, release approvers, runner choice, and signing-key custody.
+- Release approvers, signing-key custody, and repository protection settings
+  (GitHub repository and Ubuntu CI runner are now configured in source).
 - Final compatible toolchain/dependency versions and minimum Android support.
 - Confirmed permitted catalogue/playback/download contracts and supported hosts.
 - Background audio and website-account support scope.

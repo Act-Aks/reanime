@@ -19,6 +19,8 @@ build/
 out/
 bin/
 .cache/
+__pycache__/
+*.py[cod]
 
 # Android SDK/NDK configuration and generated native/navigation files
 local.properties

@@ -4,8 +4,8 @@
 
 Build an unofficial, fully native Android client for Re:ANIME using Kotlin.
 The display name is **ReAnime** and release application ID is **com.reanime.app**.
-Debug builds use **com.reanime.app.debug**. No GitHub repository exists yet;
-do not invent release coordinates or create a remote without authorization.
+Debug builds use **com.reanime.app.debug**. The public GitHub repository is
+**Act-Aks/reanime**. Do not change remotes, publish releases, or push without authorization.
 Re:ANIME is the only catalogue source. Alternate verified Re:ANIME domains are
 mirrors, not additional providers. Take interaction inspiration from Nuvio,
 Cloudstream, and similar apps without copying their extension architectures.

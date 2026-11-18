@@ -17,8 +17,15 @@ tasks.register("verifyFoundation") {
         ":feature:browse:detekt",
         ":app:lintDebug",
         ":app:testDebugUnitTest",
+        ":core:designsystem:testDebugUnitTest",
         ":feature:browse:testDebugUnitTest",
         ":app:assembleDebug"
     )
     dependsOn(gradle.includedBuild("build-logic").task(":check"))
+}
+
+tasks.register("verifyRelease") {
+    group = "verification"
+    description = "Checks release lint and R8/resource shrinking without signing or publishing."
+    dependsOn(":app:lintRelease", ":app:assembleRelease")
 }

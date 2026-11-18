@@ -41,7 +41,7 @@ Stage deliberately and inspect `git diff --cached` before committing.
 
 ## Pull requests and future release automation
 
-Use a Conventional Commit subject as the PR title. Once GitHub is configured,
+Use a Conventional Commit subject as the PR title; CI validates it. On GitHub,
 prefer **squash merging with the PR title as the final commit subject**. That gives
 future release tooling a consistent history even when work-in-progress commits
 were used on a branch. These GitHub merge/protection settings are not configured
@@ -64,9 +64,12 @@ snapshot as a public release. Android `versionCode` allocation remains a separat
 globally monotonic requirement across stable, beta, and hotfixes; commit types,
 SemVer strings, and Git commit counts are not substitutes.
 
-No remote repository, release workflow, signing secrets, or protected branch
-settings exist yet. Connecting GitHub must include CI checks, squash-title
-validation, trusted publishing refs, and signing/update-manifest verification.
+The repository is hosted at `Act-Aks/reanime`, with CI and PR-title validation
+defined in the workflow. Release publishing/signing are not implemented. Repository
+administrators still need to configure required checks and squash-title settings;
+this change does not modify GitHub branch protection or release permissions.
+After the updated workflow first runs, require its final **CI** check in branch
+protection/rulesets. It fails unless both prerequisite verification jobs succeed.
 
 ## Verification
 
@@ -75,6 +78,8 @@ Format explicitly, then run verification as a separate command:
 ```sh
 ./gradlew ktlintFormat :build-logic:ktlintFormat :build-logic:convention:ktlintFormat
 ./gradlew verifyFoundation
+./gradlew verifyRelease
+python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 ```
 
 Document results and limitations honestly. A successful build does not establish

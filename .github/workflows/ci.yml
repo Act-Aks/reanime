@@ -2,57 +2,123 @@ name: Android CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   push:
     branches: [main]
+  merge_group:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  foundation:
+  conventions:
+    name: Contribution conventions
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - name: Read build settings from version catalog
+      - name: Test CI helpers
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+      - name: Check Conventional Commit PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: python3 .github/scripts/check_pr_title.py
+
+  foundation:
+    name: Android verification
+    needs: conventions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Read and validate catalog and wrapper settings
         id: config
-        run: |
-          python3 - <<'PY'
-          import os
-          import tomllib
-          with open('gradle/libs.versions.toml', 'rb') as source:
-              versions = tomllib.load(source)['versions']
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              print(f"java={int(versions['projectJavaVersion'])}", file=output)
-              print(f"compile_sdk={int(versions['projectCompileSdkVersion'])}", file=output)
-          PY
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        run: python3 .github/scripts/ci_config.py
+      - name: Install build and compilation JDKs
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
-          java-version: ${{ steps.config.outputs.java }}
-      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+          # The last JDK is the runtime; the first remains available as a toolchain.
+          java-version: |
+            ${{ steps.config.outputs.toolchain_java }}
+            ${{ steps.config.outputs.build_java }}
+      - name: Set up Android command-line tools and accept SDK licenses
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          log-accepted-android-sdk-licenses: false
+      - name: Set up Gradle and validate wrapper JARs
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          validate-wrappers: true
+          cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
       - name: Install Android SDK components
         env:
-          COMPILE_SDK: ${{ steps.config.outputs.compile_sdk }}
-        run: sdkmanager "platforms;android-${COMPILE_SDK}"
-      - name: Verify foundation
-        run: ./gradlew verifyFoundation --stacktrace
+          SDK_PACKAGE: ${{ steps.config.outputs.sdk_package }}
+        run: sdkmanager "$SDK_PACKAGE"
+      - name: Verify foundation and minified release build
+        env:
+          JAVA_ENVIRONMENTS: ${{ steps.config.outputs.java_environments }}
+        run: >-
+          ./gradlew verifyFoundation verifyRelease
+          "-Porg.gradle.java.installations.fromEnv=$JAVA_ENVIRONMENTS"
+          --continue --stacktrace --console=plain
       - name: Upload verification reports
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: verification-reports
+          name: verification-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            **/build/reports/
-            **/build/test-results/
+            build/reports/
+            app/build/reports/
+            app/build/test-results/
+            core/designsystem/build/reports/
+            core/designsystem/build/test-results/
+            feature/browse/build/reports/
+            feature/browse/build/test-results/
+            build-logic/build/reports/
+            build-logic/convention/build/reports/
+            build-logic/convention/build/test-results/
           if-no-files-found: warn
           retention-days: 7
+      - name: Upload development APK from main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: reanime-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  ci:
+    name: CI
+    if: ${{ always() && !cancelled() }}
+    needs: [conventions, foundation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require all verification jobs to pass
+        env:
+          CONVENTIONS_RESULT: ${{ needs.conventions.result }}
+          ANDROID_RESULT: ${{ needs.foundation.result }}
+        run: |
+          if [[ "$CONVENTIONS_RESULT" != success || "$ANDROID_RESULT" != success ]]; then
+            echo 'One or more required verification jobs failed or were skipped.'
+            exit 1
+          fi
+          echo 'All verification jobs passed.'
