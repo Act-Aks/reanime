@@ -6,18 +6,18 @@ import com.reanime.core.model.catalogue.AnimeSummary
 import com.reanime.core.model.catalogue.CatalogueError
 import com.reanime.core.model.catalogue.CatalogueHome
 import com.reanime.core.model.catalogue.CatalogueMirror
-import com.reanime.core.model.catalogue.CatalogueResult
 import com.reanime.core.model.catalogue.CatalogueSection
 import com.reanime.core.model.catalogue.CatalogueSectionKind
+import com.reanime.core.model.result.Result
 import kotlinx.collections.immutable.toPersistentList
 
 class ReAnimeHomeParser {
-    fun parse(html: String, mirror: CatalogueMirror): CatalogueResult {
+    fun parse(html: String, mirror: CatalogueMirror): Result<CatalogueHome, CatalogueError> {
         val document = Ksoup.parse(html)
         if (document.title().contains("Just a moment", ignoreCase = true) ||
             document.selectFirst("#challenge-form, #cf-challenge-running") != null
         ) {
-            return CatalogueResult.Failure(CatalogueError.ACCESS_BLOCKED)
+            return Result.Failure(CatalogueError.ACCESS_BLOCKED)
         }
         val sections = document.select("main section").mapNotNull { section ->
             val kind = sectionKind(section.selectFirst("h2")?.text()) ?: return@mapNotNull null
@@ -26,9 +26,9 @@ class ReAnimeHomeParser {
             if (anime.isEmpty()) null else CatalogueSection(kind, anime)
         }.distinctBy { it.kind }.toPersistentList()
         return if (sections.isEmpty()) {
-            CatalogueResult.Failure(CatalogueError.LAYOUT_CHANGED)
+            Result.Failure(CatalogueError.LAYOUT_CHANGED)
         } else {
-            CatalogueResult.Success(CatalogueHome(sections))
+            Result.Success(CatalogueHome(sections))
         }
     }
 

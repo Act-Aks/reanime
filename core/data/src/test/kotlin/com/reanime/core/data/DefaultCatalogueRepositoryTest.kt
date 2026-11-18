@@ -3,7 +3,7 @@ package com.reanime.core.data
 import com.reanime.core.model.catalogue.CatalogueError
 import com.reanime.core.model.catalogue.CatalogueHome
 import com.reanime.core.model.catalogue.CatalogueMirror
-import com.reanime.core.model.catalogue.CatalogueResult
+import com.reanime.core.model.result.Result
 import com.reanime.source.reanime.CataloguePageSource
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CompletableDeferred
@@ -16,7 +16,7 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultCatalogueRepositoryTest {
-    private val success = CatalogueResult.Success(CatalogueHome(persistentListOf()))
+    private val success = Result.Success(CatalogueHome(persistentListOf()))
 
     @Test
     fun `fresh success is cached while explicit refresh bypasses cache`() = runTest {
@@ -61,7 +61,7 @@ class DefaultCatalogueRepositoryTest {
         val repository = DefaultCatalogueRepository(
             CataloguePageSource {
                 requests++
-                CatalogueResult.Failure(CatalogueError.ACCESS_BLOCKED)
+                Result.Failure(CatalogueError.ACCESS_BLOCKED)
             }
         )
 
@@ -73,7 +73,7 @@ class DefaultCatalogueRepositoryTest {
     @Test
     fun `concurrent loads share a successful cache fill`() = runTest {
         var requests = 0
-        val response = CompletableDeferred<CatalogueResult>()
+        val response = CompletableDeferred<Result<CatalogueHome, CatalogueError>>()
         val repository = DefaultCatalogueRepository(
             CataloguePageSource {
                 requests++

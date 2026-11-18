@@ -13,8 +13,12 @@ tasks.register("verifyFoundation") {
         ":app:detekt",
         ":core:designsystem:ktlintCheck",
         ":core:designsystem:detekt",
-        ":feature:browse:ktlintCheck",
-        ":feature:browse:detekt",
+        ":feature:home:ktlintCheck",
+        ":feature:home:detekt",
+        ":core:network:ktlintCheck",
+        ":core:network:detekt",
+        ":core:network:test",
+        ":core:network:lint",
         ":core:model:ktlintCheck",
         ":core:model:detekt",
         ":core:model:test",
@@ -30,7 +34,7 @@ tasks.register("verifyFoundation") {
         ":app:lintDebug",
         ":app:testDebugUnitTest",
         ":core:designsystem:testDebugUnitTest",
-        ":feature:browse:testDebugUnitTest",
+        ":feature:home:testDebugUnitTest",
         ":app:assembleDebug"
     )
     dependsOn(gradle.includedBuild("build-logic").task(":check"))

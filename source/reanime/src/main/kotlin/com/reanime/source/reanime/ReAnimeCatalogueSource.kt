@@ -1,98 +1,50 @@
 package com.reanime.source.reanime
 
 import com.reanime.core.model.catalogue.CatalogueError
+import com.reanime.core.model.catalogue.CatalogueHome
 import com.reanime.core.model.catalogue.CatalogueMirror
-import com.reanime.core.model.catalogue.CatalogueResult
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.network.sockets.SocketTimeoutException
-import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.prepareGet
-import io.ktor.client.statement.bodyAsChannel
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.utils.io.readBuffer
-import java.io.IOException
+import com.reanime.core.model.result.Result
+import com.reanime.core.network.NetworkClient
+import com.reanime.core.network.NetworkError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.io.readByteArray
 
 fun interface CataloguePageSource {
-    suspend fun home(mirror: CatalogueMirror): CatalogueResult
-}
-
-fun createReAnimeHttpClient(): HttpClient = HttpClient(OkHttp) {
-    expectSuccess = false
-    followRedirects = false
-    engine { config { retryOnConnectionFailure(false) } }
-    install(HttpTimeout) {
-        connectTimeoutMillis = CONNECT_TIMEOUT_MILLIS
-        requestTimeoutMillis = REQUEST_TIMEOUT_MILLIS
-        socketTimeoutMillis = REQUEST_TIMEOUT_MILLIS
-    }
+    suspend fun home(mirror: CatalogueMirror): Result<CatalogueHome, CatalogueError>
 }
 
 class ReAnimeCatalogueSource(
-    private val client: HttpClient,
+    private val network: NetworkClient,
     private val parser: ReAnimeHomeParser = ReAnimeHomeParser(),
     private val parsingDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : CataloguePageSource {
-    override suspend fun home(mirror: CatalogueMirror): CatalogueResult = try {
-        client.prepareGet("https://${mirror.host}/home") {
-            headers.append(HttpHeaders.Accept, "text/html")
-            headers.append(HttpHeaders.UserAgent, "ReAnime/0.1 (native Android catalogue client)")
-        }.execute { response ->
-            val error = responseError(response.status)
-            when {
-                error != null -> CatalogueResult.Failure(error)
-
-                response.contentType()?.withoutParameters()?.toString() !in HTML_TYPES ->
-                    CatalogueResult.Failure(CatalogueError.UNEXPECTED_RESPONSE)
-
-                else -> {
-                    val bytes = response.bodyAsChannel().readBuffer(MAX_HTML_BYTES + 1).readByteArray()
-                    if (bytes.size > MAX_HTML_BYTES) {
-                        CatalogueResult.Failure(CatalogueError.RESPONSE_TOO_LARGE)
-                    } else {
-                        withContext(parsingDispatcher) { parser.parse(bytes.decodeToString(), mirror) }
-                    }
-                }
-            }
+    override suspend fun home(mirror: CatalogueMirror): Result<CatalogueHome, CatalogueError> =
+        when (val response = network.getHtml("https://${mirror.host}/home")) {
+            is Result.Success -> withContext(parsingDispatcher) { parser.parse(response.data, mirror) }
+            is Result.Failure -> Result.Failure(response.error.toCatalogueError())
         }
-    } catch (_: HttpRequestTimeoutException) {
-        CatalogueResult.Failure(CatalogueError.TIMEOUT)
-    } catch (_: ConnectTimeoutException) {
-        CatalogueResult.Failure(CatalogueError.TIMEOUT)
-    } catch (_: SocketTimeoutException) {
-        CatalogueResult.Failure(CatalogueError.TIMEOUT)
-    } catch (_: IOException) {
-        CatalogueResult.Failure(CatalogueError.NETWORK)
-    }
 
-    private fun responseError(status: HttpStatusCode): CatalogueError? = when (status) {
-        HttpStatusCode.OK -> null
+    private fun NetworkError.toCatalogueError(): CatalogueError = when (this) {
+        NetworkError.Connection -> CatalogueError.NETWORK
 
-        HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden -> CatalogueError.ACCESS_BLOCKED
+        NetworkError.Timeout -> CatalogueError.TIMEOUT
 
-        HttpStatusCode.TooManyRequests -> CatalogueError.RATE_LIMITED
+        NetworkError.InvalidRequest, NetworkError.UnexpectedResponse -> CatalogueError.UNEXPECTED_RESPONSE
 
-        else -> if (status.value in SERVER_ERROR_RANGE) {
-            CatalogueError.SOURCE_UNAVAILABLE
-        } else {
-            CatalogueError.UNEXPECTED_RESPONSE
+        NetworkError.ResponseTooLarge -> CatalogueError.RESPONSE_TOO_LARGE
+
+        is NetworkError.Http -> when (statusCode) {
+            in ACCESS_DENIED_STATUSES -> CatalogueError.ACCESS_BLOCKED
+            RATE_LIMITED_STATUS -> CatalogueError.RATE_LIMITED
+            in SERVER_ERROR_STATUSES -> CatalogueError.SOURCE_UNAVAILABLE
+            else -> CatalogueError.UNEXPECTED_RESPONSE
         }
     }
 
     private companion object {
-        const val MAX_HTML_BYTES = 2L * 1024 * 1024
-        val HTML_TYPES = setOf("text/html", "application/xhtml+xml")
-        val SERVER_ERROR_RANGE = 500..599
+        val ACCESS_DENIED_STATUSES = setOf(401, 403)
+        const val RATE_LIMITED_STATUS = 429
+        val SERVER_ERROR_STATUSES = 500..599
     }
 }
-
-private const val CONNECT_TIMEOUT_MILLIS = 10_000L
-private const val REQUEST_TIMEOUT_MILLIS = 20_000L

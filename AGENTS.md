@@ -46,6 +46,16 @@ dependency. Koin's experimental Navigation 3 registration API is not required.
 - Keep external DTOs, HTML nodes, database entities, and Media3 implementation
   details out of screen contracts.
 - Screens depend on feature state and callbacks, not repositories or HTTP clients.
+- Screen features are separated by responsibility (`:feature:home`, then search,
+  details, etc. as implemented); do not recreate a catch-all browse module.
+- `:core:network` owns Ktor construction, shared transport policy, HTTP-level
+  failures, qualified clients, lifecycle, and network DI. Sources receive its
+  NetworkClient contract; features receive repositories, not raw clients.
+- Use `com.reanime.core.model.result.Result<D, E : Error>` and its shared Error
+  marker. Feature/domain errors implement Error; do not create duplicate result
+  hierarchies. Import the app Result explicitly instead of kotlin.Result.
+- Translate transport errors at the source/domain boundary. Do not expose network
+  exceptions to UI, swallow cancellation, or convert programming defects to errors.
 - Repositories map remote/local representations into app-owned models.
 - Keep Re:ANIME request/parsing logic inside the source integration boundary.
 - Use focused use cases where they add business logic; do not wrap every call.

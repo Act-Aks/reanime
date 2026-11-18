@@ -17,7 +17,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.reanime.feature.browse.BrowseRoute
+import com.reanime.feature.home.HomeRoute
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -37,7 +37,7 @@ fun ReAnimeApp() {
             rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
-            entry<Home> { BrowseRoute(onAbout = { backStack.add(About) }) }
+            entry<Home> { HomeRoute(onAbout = { backStack.add(About) }) }
             entry<About> { AboutScreen(onBack = { backStack.removeLastOrNull() }) }
         }
     )

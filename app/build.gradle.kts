@@ -8,7 +8,10 @@ plugins {
 
 android {
     namespace = "com.reanime.app"
-    buildFeatures { resValues = true }
+    buildFeatures {
+        resValues = true
+        buildConfig = true
+    }
     defaultConfig {
         applicationId = libs.versions.projectApplicationId.get()
         versionCode = libs.versions.projectVersionCode.get().toInt()
@@ -27,17 +30,17 @@ android {
 
 dependencies {
     implementation(projects.core.model)
+    implementation(projects.core.network)
     implementation(projects.core.data)
     implementation(projects.source.reanime)
     implementation(projects.core.designsystem)
-    implementation(projects.feature.browse)
+    implementation(projects.feature.home)
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.ui)
     implementation(libs.lifecycle.viewmodel.navigation3)
     implementation(libs.serialization.core)
-    implementation(libs.ktor.client.core)
     implementation(libs.coil)
     implementation(libs.coil.network.ktor3)
 }
