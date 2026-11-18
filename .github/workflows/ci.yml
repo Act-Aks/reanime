@@ -101,6 +101,8 @@ jobs:
             source/reanime/build/test-results/
             feature/home/build/reports/
             feature/home/build/test-results/
+            feature/details/build/reports/
+            feature/details/build/test-results/
             build-logic/build/reports/
             build-logic/convention/build/reports/
             build-logic/convention/build/test-results/

@@ -1,7 +1,7 @@
 # Re:ANIME Android architecture
 
-Status: foundation CI green on main; home-catalogue integration implemented and
-live JVM fetch/parse verified. Android-device access and media features unverified.
+Status: home-catalogue, anime-details, and episode-metadata integration implemented
+with live JVM fetch/parse proofs. Full Android UI/navigation and media features unverified.
 
 This document records agreed requirements, recommended implementation choices,
 and outstanding validation. `AGENTS.md` provides day-to-day contribution rules.
@@ -160,7 +160,7 @@ Start small and split only at useful ownership/build boundaries:
 :source:reanime         Source endpoints, DTOs, parsing, mirrors, error mapping
 :feature:home           Home catalogue MVI, UI, tests
 :feature:search         Search MVI/UI when implemented
-:feature:details        Anime details/episodes MVI/UI when implemented
+:feature:details        Anime metadata and episode browsing MVI/UI
 :feature:library        Library MVI/UI when implemented
 :feature:settings       Settings MVI/UI when implemented
 :feature:player         Player MVI, controls, playback/session integration
@@ -283,6 +283,43 @@ automatic fallback for safe requests only. Persist source IDs independently of
 the base URL, do not forward credentials between domains blindly, and distinguish
 domain/API/media-host failure. A remotely updated signed mirror registry is deferred.
 
+### Details and episode-metadata slice
+
+- `AnimeRequest` contains the source anime ID and a fixed mirror enum. The app's
+  serializable `AnimeDetailsKey` stores only the ID and mirror name. Unknown mirror
+  names produce a safe destination error; invalid IDs fail before any request.
+- Home navigation callbacks pass identifiers to the app composition root. Home
+  and details do not depend on each other. Navigation 3 entry decorators scope
+  ViewModels/saveable state; the details ViewModel additionally uses a route-derived
+  key. Immediate duplicate pushes and popping the root entry are guarded.
+- `AnimeDetailsRepository` and `EpisodeRepository` are separate core contracts,
+  adapted by DefaultAnimeRepository in the data layer. The adapter intentionally
+  does not add another cache in this milestone; each new details entry fetches two
+  pages. ViewModel state retains results across rotation. Home's existing five-minute
+  cache remains unchanged; durable data still awaits Room/DataStore.
+- The details source requests `/anime/{id}`; the episode source requests
+  `/watch/{id}?ep=1` only to read server-rendered listing metadata. No player,
+  JavaScript, embed, stream URL, or third-party media host is loaded/executed.
+- Parsers verify canonical anime identity and challenge/layout markers. Details
+  use the title attributes, nearby synopsis, CDN artwork, genre links, and labelled
+  information fields. Missing optional fields are omitted, not invented.
+- Episode identity must agree between the trusted same-anime watch link's single
+  numeric `ep` query and `data-episode`. Supported zero/decimal specials sort
+  numerically. Foreign IDs, malformed/ambiguous queries, duplicates, unsafe artwork,
+  and inconsistent counts are rejected or excluded with partial-list reporting.
+- Only an explicit zero count with no cards is a valid empty listing; missing
+  structure/positive-count empty lists are errors. Parsed counts smaller than the
+  reported total produce a partial-list notice. No episodes are synthesized from
+  totals, and no pagination/range crawling is implemented.
+- DetailsScreenViewModel has independent jobs, request generations, loading/content/
+  error states, refresh retention, and targeted retries for metadata/episodes.
+  Filter, synopsis expansion, and selected visible episode are small saved inputs.
+  A failing or pending request does not replace the other request's successful data.
+- Episode taps expand information; they do not play media. Sub/dub labels are
+  website tags, not verified audio/subtitle tracks. Error messages and quantity
+  notices use native string/plural resources. Full accessibility and predictive-back
+  interaction still need device/instrumented validation.
+
 ### Error taxonomy
 
 Use the common `com.reanime.core.model.result.Result<out D, out E : Error>`:
@@ -291,15 +328,17 @@ Use the common `com.reanime.core.model.result.Result<out D, out E : Error>`:
 - `Error` is a public marker interface, not Throwable. It stays open so domain
   modules can implement it with enums/sealed types. There is no catch-all message
   string, stack trace, or network implementation dependency on this contract.
-- CatalogueError implements Error. NetworkError is a sealed transport-level Error
+- CatalogueError, DetailsError, and EpisodeError implement Error. NetworkError is a sealed transport-level Error
   with connection/timeout/invalid-request/response/size cases and an HTTP status
   variant. A source maps these into domain-owned catalogue failures.
-- Repositories/sources/parsers return `Result<CatalogueHome, CatalogueError>`;
-  there is no longer a separate CatalogueResult hierarchy or compatibility alias.
+- Repositories/sources/parsers return domain-appropriate results such as
+  `Result<CatalogueHome, CatalogueError>`, `Result<AnimeDetails, DetailsError>`, and
+  `Result<EpisodeListing, EpisodeError>`. There are no separate result hierarchies
+  or compatibility aliases per feature.
 - `map` transforms success and `mapError` transforms failures without swallowing
   exceptions or invoking the wrong branch. Import Result explicitly to distinguish
-  it from kotlin.Result. Do not create EpisodeError until episodes are implemented;
-  its real cases should implement the same Error contract.
+  it from kotlin.Result. Details/episode failures now have concrete invalid-ID,
+  not-found, identity-mismatch, layout, and transport cases using this contract.
 - Cancellation, programming defects, and fatal errors are not normal result values.
   Do not introduce a blanket Throwable/Exception catch to force everything into
   Result.Failure. Screen events remain transient UI commands, not result wrappers.
@@ -586,10 +625,10 @@ actual evidence as implementation proceeds.
 ### Current implementation evidence
 
 - Modules present: `:app`, `:core:model`, `:core:network`, `:core:data`, `:core:designsystem`,
-  `:source:reanime`, `:feature:home`, and the included build's `:convention` module.
+  `:source:reanime`, `:feature:home`, `:feature:details`, and the included build's `:convention` module.
 - Native home rows, manual mirror controls, loading/refresh/error states, Coil
-  artwork wiring, and cancellation-safe MVI. Cards are deliberately not playback
-  buttons; title details, search, and episode browsing are still pending.
+  artwork wiring, and cancellation-safe MVI. Home cards open native details and
+  episode metadata; they are not playback buttons. Search/playback/downloads remain pending.
 - Parser/URL validation, bounded requests, HTTP/content-type/errors/cancellation,
   cache expiry/refresh/concurrency, reducers/restoration/stale results, and app DI
   have deterministic unit coverage, not Android process-death instrumentation.
@@ -605,7 +644,7 @@ actual evidence as implementation proceeds.
 - GitHub run `44305245950` failed before Gradle because `sdkmanager` was absent from
   PATH. After SDK setup and obsolete-package fixes, main run `44310599309` passed
   on commit `926e39c`. New catalogue changes need their own hosted validation.
-- Final local verification passed `./gradlew verifyFoundation verifyRelease
+- Earlier foundation verification passed `./gradlew verifyFoundation verifyRelease
   --console=plain --continue`, including all five browse tests, debug/release lint,
   debug assembly, R8, and release resource shrinking with compile SDK 37.0.
 - All 12 CI-helper test methods passed. Actionlint 1.7.12 validated workflow syntax,
@@ -646,6 +685,30 @@ actual evidence as implementation proceeds.
 - The developer reported that the previous app build launched on a device. Full
   device tests for this refactor, source/artwork access, playback, and downloads
   remain separate verification steps; this report is not treated as proof of them.
+
+### Details / episode-metadata milestone verification
+
+- `./gradlew verifyFoundation verifyRelease --console=plain --continue` passes
+  with details checks and reports included in CI; no checks or baselines were relaxed.
+- **71 Kotlin/JVM tests** pass: app routing/DI (5), Home (10), Details MVI (11),
+  shared Result (5), shared network (11), cache (4), source parsing/mapping/safety (25).
+- **13 CI-helper tests**, actionlint (without unavailable ShellCheck), Git whitespace,
+  handwritten XML, and local documentation-link checks pass.
+- The explicit live JVM metadata probe fetched **6 facts, 5 genres, a synopsis,
+  and 20 episode cards** for the sample title. Reported total was 20 and the parsed
+  page was not partial. This verifies these two HTML responses, not every anime,
+  mirror, page/range, or any playable stream.
+- New tests cover invalid IDs before transport, canonical mismatch, challenge and
+  missing layouts, untrusted artwork, omitted optional fields, zero/decimal episode
+  identities, duplicate/foreign/ambiguous links, partial/inconsistent counts, independent
+  outcomes/retries/stale responses, filters/selection restoration, and typed route
+  serialization. App DI uses fake transport to exercise the real sources/repositories.
+- `adb devices -l` reported no connected device. Actual tap/navigation/back/rotation,
+  entry scoping, TalkBack, large fonts, and this build's Android network/image behavior
+  still need device/instrumented testing. A previous app-launch report is not proof
+  of these new interactions. No media host, iframe, JavaScript, or video was executed.
+- No changes have been published by this milestone; a new hosted run is required
+  after a later authorized commit/push.
 
 ## 14. Decisions still required
 

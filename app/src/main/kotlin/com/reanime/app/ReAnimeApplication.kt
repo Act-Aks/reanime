@@ -8,6 +8,7 @@ import coil3.network.ktor3.KtorNetworkFetcherFactory
 import com.reanime.app.di.catalogueModule
 import com.reanime.core.network.di.NetworkClientRole
 import com.reanime.core.network.di.networkModule
+import com.reanime.feature.details.detailsModule
 import com.reanime.feature.home.homeModule
 import io.ktor.client.HttpClient
 import org.koin.android.ext.android.getKoin
@@ -22,7 +23,12 @@ class ReAnimeApplication :
         super.onCreate()
         startKoin {
             androidContext(this@ReAnimeApplication)
-            modules(networkModule("ReAnime/${BuildConfig.VERSION_NAME} (Android)"), catalogueModule, homeModule)
+            modules(
+                networkModule("ReAnime/${BuildConfig.VERSION_NAME} (Android)"),
+                catalogueModule,
+                homeModule,
+                detailsModule
+            )
         }
     }
 

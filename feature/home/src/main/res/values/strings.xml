@@ -1,7 +1,8 @@
 <resources>
   <string name="reanime_title">ReAnime</string>
   <string name="catalogue_subtitle">Discover what’s on Re:ANIME</string>
-  <string name="catalogue_proof_notice">Catalogue integration preview. Playback, downloads, search, and title details are not available in this build.</string>
+  <string name="catalogue_proof_notice">Tap a title for anime details and episode metadata. Playback, downloads, and search are not available in this build.</string>
+  <string name="open_details">View details for %1$s</string>
   <string name="source_label">Website mirror</string>
   <string name="refresh">Refresh</string>
   <string name="retry">Try again</string>

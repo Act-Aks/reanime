@@ -14,9 +14,7 @@ import kotlinx.collections.immutable.toPersistentList
 class ReAnimeHomeParser {
     fun parse(html: String, mirror: CatalogueMirror): Result<CatalogueHome, CatalogueError> {
         val document = Ksoup.parse(html)
-        if (document.title().contains("Just a moment", ignoreCase = true) ||
-            document.selectFirst("#challenge-form, #cf-challenge-running") != null
-        ) {
+        if (document.isAccessChallenge()) {
             return Result.Failure(CatalogueError.ACCESS_BLOCKED)
         }
         val sections = document.select("main section").mapNotNull { section ->
