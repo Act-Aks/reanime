@@ -160,7 +160,7 @@ runs for pull requests, pushes to `main`, merge-queue groups, and manual dispatc
 6. Build debug and minified/resource-shrunk release variants.
 7. Retain reports for seven days; upload a development APK only for successful pushes to `main`.
 
-The workflow uses read-only repository permissions, commit-pinned actions,
+The workflow uses read-only repository permissions, readable major-version action tags,
 read-only caches outside trusted `main` pushes, and no release-signing secrets.
 Emulator/device tests and Gradle TestKit coverage have not been added yet.
 The final **CI** job is the combined gate to require in GitHub branch protection

@@ -412,7 +412,7 @@ Current workflow improvements:
   (`platforms;android-37.0`, not nonexistent `platforms;android-37`).
 - Both JDKs are installed; the build runtime is last/active, and Gradle receives
   the toolchain environment-variable names for deterministic discovery.
-- Checksum-pinned wrapper distribution, wrapper-JAR validation, pinned action SHAs,
+- Checksum-pinned wrapper distribution, wrapper-JAR validation, major-version action tags,
   read-only contents permission, and cache writes restricted to `main` pushes.
 - `verifyFoundation` checks every current Android module's debug unit-test task,
   plus existing formatting/Detekt/lint/debug assembly and included-build checks.
@@ -438,7 +438,9 @@ Current workflow improvements:
 7. Publish as stable release or beta prerelease only after validation.
 
 Use protected environments/approvals, serialized release execution, minimal
-GITHUB_TOKEN permissions, action SHA pinning, and explicit trusted-ref policy.
+GITHUB_TOKEN permissions, readable major-version action tags, and explicit trusted-ref policy.
+Major-version tags are mutable rather than immutable SHA pins; this is the owner's
+explicit preference. Retain artifact checksums and review Dependabot major updates.
 Do not use PR-controlled workflows/code in a secrets-bearing context. Avoid
 unnecessary long-lived personal access tokens and do not log secret material.
 

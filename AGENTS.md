@@ -186,7 +186,11 @@ their modules land, and document their exact invocations.
 - Version codes increase globally across beta, stable, and hotfix releases.
 - Switching channel never silently downgrades or requires uninstalling user data.
 - Separate untrusted PR CI from protected release/signing workflows.
-- Use minimal permissions, reviewed action SHAs, protected environments, and
+- Use readable major-version action tags (for example `actions/checkout@v6`),
+  not commit SHA references, as requested by the project owner. These tags are
+  mutable; use Dependabot to review major-version upgrades. Keep Gradle distribution
+  checksums and other artifact-integrity verification in place.
+- Use minimal permissions, protected environments, and
   concurrency controls. Do not expose release secrets to PR-controlled code.
 - Build/upload a draft release, verify all artifacts, then publish.
 - Publish APK, signed update manifest, detached manifest signature, checksums,
