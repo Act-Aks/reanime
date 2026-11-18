@@ -80,7 +80,7 @@ jobs:
           --continue --stacktrace --console=plain
       - name: Upload verification reports
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: verification-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -98,7 +98,7 @@ jobs:
           retention-days: 7
       - name: Upload development APK from main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: reanime-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
