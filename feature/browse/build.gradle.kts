@@ -8,9 +8,11 @@ plugins {
 android { namespace = "com.reanime.feature.browse" }
 
 dependencies {
+    implementation(projects.core.model)
     implementation(libs.compose.material3)
     implementation(libs.compose.foundation)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.coroutines.core)
+    implementation(libs.coil.compose)
 }

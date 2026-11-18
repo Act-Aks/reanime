@@ -10,7 +10,7 @@ A Kotlin-first Re:ANIME client built around Compose, MVI, and Android-native pla
 ![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-native-7F52FF?logo=kotlin&logoColor=white)
 ![Compose](https://img.shields.io/badge/UI-Jetpack_Compose-4285F4?logo=jetpackcompose&logoColor=white)
-![Stage](https://img.shields.io/badge/Stage-foundation-F5C542)
+![Stage](https://img.shields.io/badge/Stage-catalogue_preview-F5C542)
 
 [Getting started](#getting-started) · [Architecture](#architecture) · [Roadmap](#roadmap) · [Contributing](CONTRIBUTING.md)
 
@@ -18,8 +18,10 @@ A Kotlin-first Re:ANIME client built around Compose, MVI, and Android-native pla
 
 > [!IMPORTANT]
 > **Early development — not a working streaming app yet.** The current build is a
-> native foundation screen. Catalogue access, streaming, downloads, the local
-> library, and in-app updates are not connected. There is no public release yet.
+> catalogue integration preview. A live JVM probe fetched home-page cards, but
+> Android-device access and artwork rendering still need verification. Streaming,
+> downloads, title details, search, the local library, and updates are not ready.
+> There is no public release yet.
 
 ## The idea
 
@@ -31,26 +33,36 @@ Interaction inspiration comes from Nuvio, Cloudstream, and similar clients.
 | :--- | :--- | :--- |
 | Native browsing, search, anime details, and episode lists | Media3 playback, available tracks/subtitles, resume, and picture-in-picture | Episode queues, storage controls, and offline playback |
 
-*These are product goals, not features available in the current build.*
+*This is the target experience; only the home-catalogue slice is implemented so far.*
 
 ## What exists today
 
 - **Native shell:** Compose/Material 3 theme with Navigation 3 home/about entries.
-- **MVI example:** immutable screen state, actions, a pure reducer, and saved-input restoration.
+- **Home catalogue:** Ktor + Ksoup integration for latest episodes, new-on-site,
+  and upcoming cards; a live JVM probe fetched 3 sections and 36 cards.
+- **MVI:** immutable screen state, pure reducers, saved mirror selection,
+  cancellation/stale-response protection, and refresh that retains visible content.
+- **Source controls:** manual mirror selection, actionable failures, and a
+  five-minute in-memory metadata cache. No automatic mirror hopping or challenge bypass.
+- **Artwork:** Coil 3/Ktor wiring with a separate credential-free HTTP client.
 - **Dependency wiring:** Koin with entry-scoped ViewModels.
 - **Build foundation:** catalog-driven convention plugins, formatting, static analysis, and tests.
 - **CI definitions:** PR-title validation, Android SDK/JDK setup, debug checks, and a minified release-build check.
+
+**Local verification:** 28 Kotlin/JVM unit tests and 13 CI-helper tests pass, along
+with formatting, Detekt, Android/JVM Lint, and debug/minified release builds.
+No device was connected for Android UI/network verification during this milestone.
 
 ## Stack
 
 | Layer | Technology | Status |
 | :--- | :--- | :--- |
 | Interface | Kotlin · Jetpack Compose · Material 3 | Foundation implemented |
-| Presentation | MVI · ViewModel · Coroutines · StateFlow | Example implemented |
+| Presentation | MVI · ViewModel · Coroutines · StateFlow | Catalogue flow implemented |
 | Navigation & DI | Navigation 3 · Koin | Connected |
-| Requests & parsing | Ktor 3 · kotlinx.serialization · Fleeksoft Ksoup | Source integration planned |
+| Requests & parsing | Ktor 3 · Fleeksoft Ksoup | Home HTML integration; live JVM probe passed |
 | Local data | Room 3 · SQLite driver · DataStore | Planned |
-| Artwork | Coil 3 with Ktor integration | Planned |
+| Artwork | Coil 3 with Ktor integration | Wired; device verification pending |
 | Playback & downloads | AndroidX Media3 | Feasibility validation pending |
 | Distribution | GitHub Releases · stable/beta update channels | Signing/updater pipeline planned |
 
@@ -87,6 +99,21 @@ cd reanime
 # Also exercise release lint, R8, and resource shrinking—without publishing.
 ./gradlew verifyRelease
 ```
+
+<details>
+<summary><strong>Optional live catalogue probe</strong></summary>
+
+```sh
+./gradlew :source:reanime:probeCatalogue
+```
+
+This explicitly makes one request to `reanime.cz/home`. It is **not part of unit
+tests or CI**, and site/network restrictions may make it fail. It does not execute
+website scripts, solve browser challenges, inspect media hosts, or establish that
+playback/downloads work. Ordinary parser/network tests use synthetic fixtures and
+Ktor MockEngine, not live website requests.
+
+</details>
 
 <details>
 <summary><strong>Formatting and CI helper tests</strong></summary>
@@ -126,9 +153,9 @@ flowchart TD
     UI[Compose screen] -->|ScreenAction| VM[ScreenViewModel]
     VM --> R[Pure reducer]
     R -->|ScreenState / StateFlow| UI
-    VM -. planned integration .-> Repo[Repositories]
+    VM --> Repo[Catalogue repository / in-memory cache]
     Repo -.-> Local[Room 3 / DataStore]
-    Repo -.-> Source[ReAnime integration / Ktor / Ksoup]
+    Repo --> Source[ReAnime home HTML / Ktor / Ksoup]
     Source -.-> Media[Media3 playback / offline downloads]
 ```
 
@@ -140,7 +167,10 @@ execution; MVI observes and controls it rather than duplicating its state machin
 ```text
 app/                       App setup, Koin, Navigation 3
 core/designsystem/         Initial Compose theme
-feature/browse/            Foundation screen, MVI contracts, unit tests
+core/model/                Immutable catalogue models and repository contract
+core/data/                 Catalogue repository and in-memory cache
+source/reanime/            Ktor requests, Ksoup parser, fixtures, opt-in probe
+feature/browse/            Native catalogue screen, MVI contracts, unit tests
 build-logic/convention/    Compiled, catalog-driven Gradle plugins
 gradle/                    Version catalog and checksum-pinned wrapper
 .github/                   CI, helper tests, Dependabot, PR template
@@ -170,6 +200,7 @@ after the workflow first runs. Local verification does not imply a green hosted 
 
 - [x] Kotlin/Compose foundation and MVI conventions.
 - [x] Catalog-driven build logic, quality checks, and initial unit tests.
+- [x] Home catalogue integration and live JVM fetch/parse proof.
 - [ ] Verify permitted source access and native streaming/download compatibility.
 - [ ] Home, search, anime details, and episode browsing.
 - [ ] Local watchlist, progress, history, and continue watching.

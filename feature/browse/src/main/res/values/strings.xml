@@ -1,9 +1,25 @@
 <resources>
   <string name="reanime_title">ReAnime</string>
-  <string name="foundation_status">Native foundation</string>
-  <string name="source_not_connected">The catalogue is not connected yet. Streaming and offline downloads will appear after source compatibility is verified.</string>
+  <string name="catalogue_subtitle">Discover what’s on Re:ANIME</string>
+  <string name="catalogue_proof_notice">Catalogue integration preview. Playback, downloads, search, and title details are not available in this build.</string>
+  <string name="source_label">Website mirror</string>
+  <string name="refresh">Refresh</string>
+  <string name="retry">Try again</string>
+  <string name="loading_catalogue">Loading catalogue…</string>
+  <string name="empty_catalogue">No titles are available right now.</string>
+  <string name="latest_episodes">Latest episodes</string>
+  <string name="new_on_site">New on site</string>
+  <string name="upcoming">Upcoming</string>
+  <string name="error_network">Could not reach Re:ANIME. Check your connection and try again.</string>
+  <string name="error_timeout">Re:ANIME took too long to respond. Please try again later.</string>
+  <string name="error_blocked">Re:ANIME blocked this request. Native access may be restricted on your network. Browser challenges are not bypassed.</string>
+  <string name="error_rate_limited">Re:ANIME is limiting requests. Please wait before trying again.</string>
+  <string name="error_unavailable">Re:ANIME is temporarily unavailable. Please try again later.</string>
+  <string name="error_response">The website returned an unsupported response or redirect.</string>
+  <string name="error_size">The website response exceeded the safe size limit.</string>
+  <string name="error_layout">The website layout could not be recognized. The integration may need an update.</string>
   <string name="show_details">Show technical details</string>
   <string name="hide_details">Hide technical details</string>
-  <string name="technical_details">Kotlin · Compose · MVI · Navigation 3 · Koin\nGitHub release repository: not configured.</string>
+  <string name="technical_details">Ktor requests · Ksoup HTML parsing · Coil artwork\nManual mirrors only. No account cookies, automatic mirror fallback, or browser-script execution. Successful catalogue results are cached in memory for five minutes.</string>
   <string name="about_build">About this build</string>
 </resources>

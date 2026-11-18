@@ -18,6 +18,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
 }
 
@@ -25,4 +26,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "ReAnime"
 
-include(":app", ":core:designsystem", ":feature:browse")
+include(":app")
+include(":core:model", ":core:data", ":core:designsystem")
+include(":source:reanime")
+include(":feature:browse")
