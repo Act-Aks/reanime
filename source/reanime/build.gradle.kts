@@ -15,3 +15,11 @@ tasks.register<JavaExec>("probeCatalogue") {
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("com.reanime.source.reanime.LiveCatalogueProbe")
 }
+
+tasks.register<JavaExec>("probeDetails") {
+    group = "verification"
+    description = "Opt-in, two-request live details/episode-metadata probe; not part of CI."
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.reanime.source.reanime.LiveDetailsProbe")
+    args(providers.gradleProperty("probeAnimeId").orElse("red-river-nb73wr").get())
+}

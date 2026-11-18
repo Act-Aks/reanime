@@ -29,4 +29,4 @@ rootProject.name = "ReAnime"
 include(":app")
 include(":core:model", ":core:network", ":core:data", ":core:designsystem")
 include(":source:reanime")
-include(":feature:home")
+include(":feature:home", ":feature:details")

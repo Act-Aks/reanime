@@ -15,6 +15,8 @@ tasks.register("verifyFoundation") {
         ":core:designsystem:detekt",
         ":feature:home:ktlintCheck",
         ":feature:home:detekt",
+        ":feature:details:ktlintCheck",
+        ":feature:details:detekt",
         ":core:network:ktlintCheck",
         ":core:network:detekt",
         ":core:network:test",
@@ -35,6 +37,7 @@ tasks.register("verifyFoundation") {
         ":app:testDebugUnitTest",
         ":core:designsystem:testDebugUnitTest",
         ":feature:home:testDebugUnitTest",
+        ":feature:details:testDebugUnitTest",
         ":app:assembleDebug"
     )
     dependsOn(gradle.includedBuild("build-logic").task(":check"))

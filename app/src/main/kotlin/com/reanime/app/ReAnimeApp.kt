@@ -17,6 +17,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.reanime.feature.details.DetailsRoute
 import com.reanime.feature.home.HomeRoute
 import kotlinx.serialization.Serializable
 
@@ -29,29 +30,46 @@ internal data object About : NavKey
 @Composable
 fun ReAnimeApp() {
     val backStack = rememberNavBackStack(Home)
+    val onBack: () -> Unit = { if (backStack.size > 1) backStack.removeLastOrNull() }
     NavDisplay(
         backStack = backStack,
-        onBack = { if (backStack.size > 1) backStack.removeLastOrNull() },
+        onBack = onBack,
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
-            entry<Home> { HomeRoute(onAbout = { backStack.add(About) }) }
-            entry<About> { AboutScreen(onBack = { backStack.removeLastOrNull() }) }
+            entry<Home> {
+                HomeRoute(
+                    onAbout = { if (backStack.lastOrNull() == Home) backStack.add(About) },
+                    onAnimeSelected = { id, mirror ->
+                        val destination = AnimeDetailsKey(id, mirror.name)
+                        if (backStack.lastOrNull() == Home) backStack.add(destination)
+                    }
+                )
+            }
+            entry<About> { InfoScreen(R.string.about_title, R.string.about_description, onBack) }
+            entry<AnimeDetailsKey> { key ->
+                val request = key.requestOrNull()
+                if (request == null) {
+                    InfoScreen(R.string.invalid_destination, R.string.invalid_destination_message, onBack)
+                } else {
+                    DetailsRoute(request, onBack)
+                }
+            }
         }
     )
 }
 
 @Composable
-private fun AboutScreen(onBack: () -> Unit) {
+private fun InfoScreen(title: Int, message: Int, onBack: () -> Unit) {
     Scaffold { contentPadding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(contentPadding).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(stringResource(R.string.about_title))
-            Text(stringResource(R.string.about_description))
+            Text(stringResource(title))
+            Text(stringResource(message))
             Button(onClick = onBack) { Text(stringResource(R.string.back)) }
         }
     }

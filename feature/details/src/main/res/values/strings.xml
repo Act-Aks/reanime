@@ -1,0 +1,39 @@
+<resources>
+  <string name="back">Back</string>
+  <string name="refresh">Refresh</string>
+  <string name="retry">Try again</string>
+  <string name="metadata_notice">Anime and episode metadata only. Native playback and downloads are not available yet. Episode tags are not verified media tracks. Listings may be partial; pagination is not implemented.</string>
+  <string name="loading_details">Loading anime details…</string>
+  <string name="loading_episodes">Loading episode metadata…</string>
+  <string name="episodes">Episodes</string>
+  <string name="show_more">Show more</string>
+  <string name="show_less">Show less</string>
+  <string name="all">All</string>
+  <string name="sub">Sub</string>
+  <string name="dub">Dub</string>
+  <string name="episode_title">%1$s. %2$s</string>
+  <string name="site_tags">Site tags: %1$s</string>
+  <string name="episode_info">Tap for episode information</string>
+  <string name="no_synopsis">No episode synopsis is listed.</string>
+  <string name="aired">Listed air date: %1$s</string>
+  <string name="expanded">Expanded</string>
+  <string name="collapsed">Collapsed</string>
+  <plurals name="partial_listing">
+    <item quantity="one">Showing %1$d of %2$d listed episode. Additional website pages are not loaded in this preview.</item>
+    <item quantity="other">Showing %1$d of %2$d listed episodes. Additional website pages are not loaded in this preview.</item>
+  </plurals>
+  <string name="no_episodes">The website currently lists no episodes on this page.</string>
+  <string name="no_filter_matches">No listed episodes match this filter.</string>
+  <string name="invalid_id">This anime identifier is invalid. No request was sent.</string>
+  <string name="network_error">Could not reach Re:ANIME. Check your connection.</string>
+  <string name="timeout_error">Re:ANIME took too long to respond.</string>
+  <string name="blocked_error">Re:ANIME blocked this request. Browser challenges are not bypassed.</string>
+  <string name="rate_error">Re:ANIME is limiting requests. Please wait before retrying.</string>
+  <string name="details_missing">This anime detail page was not found on the selected mirror.</string>
+  <string name="episodes_missing">An episode page was not found. The title may not have episodes yet.</string>
+  <string name="server_error">Re:ANIME is temporarily unavailable.</string>
+  <string name="response_error">The website returned an unsupported response or redirect.</string>
+  <string name="size_error">The website response exceeded the safe size limit.</string>
+  <string name="layout_error">This page could not be recognized. The integration may need an update.</string>
+  <string name="identity_error">The website returned a different anime. Its data will not be displayed.</string>
+</resources>

@@ -1,5 +1,6 @@
 package com.reanime.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -44,13 +46,22 @@ import com.reanime.core.model.catalogue.CatalogueSectionKind
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun HomeRoute(onAbout: () -> Unit, viewModel: HomeScreenViewModel = koinViewModel()) {
+fun HomeRoute(
+    onAbout: () -> Unit,
+    onAnimeSelected: (String, CatalogueMirror) -> Unit,
+    viewModel: HomeScreenViewModel = koinViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onAction = viewModel::onAction, onAbout = onAbout)
+    HomeScreen(state, viewModel::onAction, onAbout, onAnimeSelected)
 }
 
 @Composable
-internal fun HomeScreen(state: HomeScreenState, onAction: (HomeScreenAction) -> Unit, onAbout: () -> Unit) {
+internal fun HomeScreen(
+    state: HomeScreenState,
+    onAction: (HomeScreenAction) -> Unit,
+    onAbout: () -> Unit,
+    onAnimeSelected: (String, CatalogueMirror) -> Unit
+) {
     Scaffold { contentPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(contentPadding),
@@ -83,7 +94,7 @@ internal fun HomeScreen(state: HomeScreenState, onAction: (HomeScreenAction) -> 
                             CatalogueErrorCard(error, onRetry = { onAction(HomeScreenAction.Retry) })
                         }
                     }
-                    catalogueSections(catalogue.home)
+                    catalogueSections(catalogue.home) { onAnimeSelected(it, state.mirror) }
                 }
             }
         }
@@ -122,7 +133,10 @@ private fun HomeHeader(state: HomeScreenState, onAction: (HomeScreenAction) -> U
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.catalogueSections(home: CatalogueHome) {
+private fun androidx.compose.foundation.lazy.LazyListScope.catalogueSections(
+    home: CatalogueHome,
+    onAnimeSelected: (String) -> Unit
+) {
     if (home.sections.isEmpty()) {
         item(key = "empty") {
             Text(stringResource(R.string.empty_catalogue), modifier = Modifier.padding(horizontal = 24.dp))
@@ -139,15 +153,16 @@ private fun androidx.compose.foundation.lazy.LazyListScope.catalogueSections(hom
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(section.anime, key = { it.id }) { anime -> AnimePoster(anime) }
+                items(section.anime, key = { it.id }) { anime -> AnimePoster(anime) { onAnimeSelected(anime.id) } }
             }
         }
     }
 }
 
 @Composable
-private fun AnimePoster(anime: AnimeSummary) {
-    Column(Modifier.width(136.dp)) {
+private fun AnimePoster(anime: AnimeSummary, onClick: () -> Unit) {
+    val label = stringResource(R.string.open_details, anime.title)
+    Column(Modifier.width(136.dp).clickable(onClickLabel = label, role = Role.Button, onClick = onClick)) {
         Card {
             Box(Modifier.fillMaxWidth().aspectRatio(POSTER_ASPECT_RATIO)) {
                 Text(

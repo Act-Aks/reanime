@@ -1,5 +1,7 @@
 <resources>
   <string name="about_title">About this build</string>
-  <string name="about_description">Native Kotlin catalogue integration preview. ReAnime reads public home-page cards with Ktor and Ksoup when the website permits the request. Streaming, offline downloads, and in-app updates are not connected yet. This is an unofficial client.</string>
+  <string name="about_description">Native Kotlin catalogue and anime-details preview. ReAnime reads public page metadata when the website permits the request. Episode browsing does not establish playable media. Streaming, offline downloads, search, and in-app updates are not connected yet. This is an unofficial client.</string>
+  <string name="invalid_destination">Unsupported destination</string>
+  <string name="invalid_destination_message">This saved destination refers to an unknown mirror. Return home and select the anime again.</string>
   <string name="back">Back</string>
 </resources>

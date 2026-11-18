@@ -35,6 +35,7 @@ dependencies {
     implementation(projects.source.reanime)
     implementation(projects.core.designsystem)
     implementation(projects.feature.home)
+    implementation(projects.feature.details)
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
     implementation(libs.navigation3.runtime)
@@ -43,4 +44,5 @@ dependencies {
     implementation(libs.serialization.core)
     implementation(libs.coil)
     implementation(libs.coil.network.ktor3)
+    testImplementation(libs.serialization.json)
 }

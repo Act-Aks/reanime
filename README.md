@@ -18,9 +18,10 @@ A Kotlin-first Re:ANIME client built around Compose, MVI, and Android-native pla
 
 > [!IMPORTANT]
 > **Early development — not a working streaming app yet.** The current build is a
-> catalogue integration preview. A live JVM probe fetched home-page cards, but
-> Android-device access and artwork rendering still need verification. Streaming,
-> downloads, title details, search, the local library, and updates are not ready.
+> catalogue, anime-details, and episode-metadata preview. Live JVM probes fetched
+> home cards, title information, and episode cards; full Android navigation/artwork
+> verification is still pending. Streaming, downloads, search, the local library,
+> and updates are not ready.
 > There is no public release yet.
 
 ## The idea
@@ -33,13 +34,17 @@ Interaction inspiration comes from Nuvio, Cloudstream, and similar clients.
 | :--- | :--- | :--- |
 | Native browsing, search, anime details, and episode lists | Media3 playback, available tracks/subtitles, resume, and picture-in-picture | Episode queues, storage controls, and offline playback |
 
-*This is the target experience; only the home-catalogue slice is implemented so far.*
+*This is the target experience; home browsing, anime details, and episode metadata are implemented so far.*
 
 ## What exists today
 
 - **Native shell:** Compose/Material 3 theme with Navigation 3 home/about entries.
 - **Home catalogue:** Ktor + Ksoup integration for latest episodes, new-on-site,
   and upcoming cards; a live JVM probe fetched 3 sections and 36 cards.
+- **Anime details:** tap a home card for synopsis, alternative title, artwork,
+  genres, and information fields, in a separate `feature:details` module.
+- **Episode browsing:** independently loaded metadata, sub/dub site-tag filters,
+  expandable information, and explicit partial-list notices. No fake play buttons.
 - **MVI:** immutable screen state, pure reducers, saved mirror selection,
   cancellation/stale-response protection, and refresh that retains visible content.
 - **Source controls:** manual mirror selection, actionable failures, and a
@@ -53,10 +58,11 @@ Interaction inspiration comes from Nuvio, Cloudstream, and similar clients.
 - **Build foundation:** catalog-driven convention plugins, formatting, static analysis, and tests.
 - **CI definitions:** PR-title validation, Android SDK/JDK setup, debug checks, and a minified release-build check.
 
-**Local verification:** 40 Kotlin/JVM unit tests and 13 CI-helper tests pass, along
+**Local verification:** 71 Kotlin/JVM unit tests and 13 CI-helper tests pass, along
 with formatting, Detekt, Android/JVM Lint, and debug/minified release builds.
-Coverage includes transport policy, DI client/engine isolation and lifecycle,
-shared result mapping, and the renamed Home feature. See the
+Coverage includes transport policy, DI isolation, typed results, home/details MVI,
+canonical identity checks, episode-list safety, route serialization, and source
+integration with fake transport. See the
 [architecture verification notes](docs/ARCHITECTURE.md) for details.
 The developer reported a successful app launch; full device/network/playback
 verification is not inferred from that report.
@@ -68,7 +74,7 @@ verification is not inferred from that report.
 | Interface | Kotlin · Jetpack Compose · Material 3 | Foundation implemented |
 | Presentation | MVI · ViewModel · Coroutines · StateFlow | Catalogue flow implemented |
 | Navigation & DI | Navigation 3 · Koin | Connected |
-| Requests & parsing | Ktor 3 · Fleeksoft Ksoup | Home HTML integration; live JVM probe passed |
+| Requests & parsing | Ktor 3 · Fleeksoft Ksoup | Home/details/episode HTML integration; live JVM probes passed |
 | Local data | Room 3 · SQLite driver · DataStore | Planned |
 | Artwork | Coil 3 with Ktor integration | Wired; device verification pending |
 | Playback & downloads | AndroidX Media3 | Feasibility validation pending |
@@ -113,13 +119,18 @@ cd reanime
 
 ```sh
 ./gradlew :source:reanime:probeCatalogue
+
+# Two public HTML requests: anime metadata and the watch-page episode listing.
+./gradlew :source:reanime:probeDetails
 ```
 
-This explicitly makes one request to `reanime.cz/home`. It is **not part of unit
-tests or CI**, and site/network restrictions may make it fail. It does not execute
+The catalogue probe makes one request to `reanime.cz/home`. The details probe
+makes two requests for the sample title (override with `-PprobeAnimeId=<source-id>`).
+Probes are **not part of unit tests or CI**, and site/network restrictions may
+make them fail. They do not execute
 website scripts, solve browser challenges, inspect media hosts, or establish that
-playback/downloads work. Ordinary parser/network tests use synthetic fixtures and
-Ktor MockEngine, not live website requests.
+playback/downloads work. Ordinary tests use synthetic fixtures, fake transports,
+and Ktor MockEngine, not live website requests.
 
 </details>
 
@@ -163,7 +174,7 @@ flowchart TD
     R -->|ScreenState / StateFlow| UI
     VM --> Repo[Catalogue repository / in-memory cache]
     Repo -.-> Local[Room 3 / DataStore]
-    Repo --> Source[ReAnime endpoints / Ksoup]
+    Repo --> Source[ReAnime home / detail / episode HTML and Ksoup]
     Source --> Network[core:network / injected NetworkClient / Ktor]
     Source -.-> Media[Media3 playback / offline downloads]
 ```
@@ -173,9 +184,10 @@ Contracts are named `FeatureScreenState`, `FeatureScreenAction`, and
 commands with explicit delivery semantics. Media3 will own playback/download
 execution; MVI observes and controls it rather than duplicating its state machines.
 
-Each screen feature owns its MVI contracts, UI, and tests. The initial browse
-module is now `:feature:home`; search/details and other features will get separate
-modules when built. No empty feature scaffolding is added ahead of implementation.
+Each screen feature owns its MVI contracts, UI, and tests. Home and details are
+separate modules; search and other features will get modules when built. Navigation
+passes only the source anime ID and mirror name, not models or media URLs. No
+empty feature scaffolding is added ahead of implementation.
 
 Network construction stays in `core:network`; source-specific endpoints, HTML
 parsing, and transport-to-domain error mapping stay in `source:reanime`. Features
@@ -190,8 +202,8 @@ sealed interface Result<out D, out E : Error> {
 }
 ```
 
-`CatalogueError` implements this contract. Future episode/player errors can do
-the same without adding another result wrapper. Errors are typed data, not raw
+`CatalogueError`, `DetailsError`, and `EpisodeError` implement this contract.
+Future player errors can do the same without another result wrapper. Errors are typed data, not raw
 exceptions or UI strings; cancellation and programming defects still propagate.
 
 ```text
@@ -202,6 +214,7 @@ core/network/              Ktor transport, HTTP policy/errors, qualified client 
 core/data/                 Catalogue repository and in-memory cache
 source/reanime/            Source endpoints, Ksoup parser, error mapping, probe
 feature/home/              Native home screen, MVI contracts, unit tests
+feature/details/           Anime metadata, episode browsing, MVI, tests
 build-logic/convention/    Compiled, catalog-driven Gradle plugins
 gradle/                    Version catalog and checksum-pinned wrapper
 .github/                   CI, helper tests, Dependabot, PR template
@@ -232,8 +245,9 @@ after the workflow first runs. Local verification does not imply a green hosted 
 - [x] Kotlin/Compose foundation and MVI conventions.
 - [x] Catalog-driven build logic, quality checks, and initial unit tests.
 - [x] Home catalogue integration and live JVM fetch/parse proof.
+- [x] Native anime details and episode-metadata browsing with live JVM proof.
 - [ ] Verify permitted source access and native streaming/download compatibility.
-- [ ] Home, search, anime details, and episode browsing.
+- [ ] Native search and catalogue filtering.
 - [ ] Local watchlist, progress, history, and continue watching.
 - [ ] Native player, tracks/subtitles, and picture-in-picture.
 - [ ] Offline download queue, storage management, and offline playback.
