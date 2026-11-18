@@ -410,6 +410,10 @@ Current workflow improvements:
 - A dependent Android job reads validated catalog values before Gradle setup;
   explicitly installs command-line tools/licenses and the canonical SDK package
   (`platforms;android-37.0`, not nonexistent `platforms;android-37`).
+- Override `setup-android@v3`'s package list with `platform-tools`. Its default
+  `tools platform-tools` requests an obsolete `tools` package and caused GitHub
+  job `134816321387` to fail before Gradle. A workflow regression test guards the
+  explicit override; the compile platform is still installed in the next step.
 - Both JDKs are installed; the build runtime is last/active, and Gradle receives
   the toolchain environment-variable names for deterministic discovery.
 - Checksum-pinned wrapper distribution, wrapper-JAR validation, major-version action tags,
