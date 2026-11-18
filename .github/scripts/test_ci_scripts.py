@@ -1,4 +1,6 @@
+import re
 import unittest
+from pathlib import Path
 
 from check_pr_title import valid_title
 from ci_config import build_outputs, validate_wrapper
@@ -71,6 +73,19 @@ class ConfigTests(unittest.TestCase):
         del self.versions["projectBuildJavaVersion"]
         with self.assertRaises(ValueError):
             build_outputs(self.versions)
+
+
+class WorkflowTests(unittest.TestCase):
+    def test_android_setup_overrides_obsolete_default_packages(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/ci.yml").read_text()
+        setup = re.search(
+            r"uses: android-actions/setup-android@[^\n]+\n(?P<inputs>(?: {8,}[^\n]*\n)+)",
+            workflow,
+        )
+        self.assertIsNotNone(setup, "Android SDK setup step must exist")
+        packages = re.search(r"(?m)^\s+packages:\s+([^\n#]+)", setup.group("inputs"))
+        self.assertIsNotNone(packages, "Override v3's obsolete default tools package explicitly")
+        self.assertEqual(packages.group(1).strip(), "platform-tools")
 
 
 class WrapperTests(unittest.TestCase):

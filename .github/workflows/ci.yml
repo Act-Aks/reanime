@@ -61,6 +61,8 @@ jobs:
       - name: Set up Android command-line tools and accept SDK licenses
         uses: android-actions/setup-android@v3
         with:
+          # v3 defaults to "tools platform-tools"; the legacy tools package is obsolete.
+          packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - name: Set up Gradle and validate wrapper JARs
         uses: gradle/actions/setup-gradle@v5
