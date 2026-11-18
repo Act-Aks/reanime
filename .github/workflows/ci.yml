@@ -93,12 +93,14 @@ jobs:
             core/designsystem/build/test-results/
             core/model/build/reports/
             core/model/build/test-results/
+            core/network/build/reports/
+            core/network/build/test-results/
             core/data/build/reports/
             core/data/build/test-results/
             source/reanime/build/reports/
             source/reanime/build/test-results/
-            feature/browse/build/reports/
-            feature/browse/build/test-results/
+            feature/home/build/reports/
+            feature/home/build/test-results/
             build-logic/build/reports/
             build-logic/convention/build/reports/
             build-logic/convention/build/test-results/

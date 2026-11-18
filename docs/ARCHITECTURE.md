@@ -153,11 +153,16 @@ Start small and split only at useful ownership/build boundaries:
 
 ```text
 :app                    App setup, Koin wiring, navigation, platform entry points
-:core:model             App-owned catalogue, episode, progress, and error models
-:core:data              Repositories, Room, DataStore, shared network configuration
+:core:model             Models/contracts and shared Result/Error
+:core:network           Shared Ktor clients, transport policy/errors, network DI
+:core:data              Repositories, Room, DataStore, cache policy
 :core:designsystem      Theme tokens and reusable accessible Compose components
-:source:reanime         Requests, DTOs, parsing, mirrors, playback-source resolution
-:feature:browse         Home/search/details/library/settings MVI initially
+:source:reanime         Source endpoints, DTOs, parsing, mirrors, error mapping
+:feature:home           Home catalogue MVI, UI, tests
+:feature:search         Search MVI/UI when implemented
+:feature:details        Anime details/episodes MVI/UI when implemented
+:feature:library        Library MVI/UI when implemented
+:feature:settings       Settings MVI/UI when implemented
 :feature:player         Player MVI, controls, playback/session integration
 :feature:downloads      Download orchestration boundary, offline library UI/MVI
 :feature:updates        Release discovery, verification, APK transfer, update UI/MVI
@@ -169,7 +174,9 @@ Wire only modules required by each milestone.
 
 - Features depend on app-owned models and repository/application APIs.
 - `core:data` implements repositories using `source:reanime` and local stores.
-- `source:reanime` depends on models/network libraries, never features or Room.
+- `source:reanime` depends on model contracts and `core:network`, never features or Room.
+- `core:network` depends on model Result/Error and transport/DI libraries, never
+  catalogue/source implementations or screen features.
 - App is the composition root and owns cross-feature navigation.
 - Design system contains no networking, persistence, or source-specific logic.
 - Keep public repository APIs distinct from their implementations; extract a
@@ -177,18 +184,40 @@ Wire only modules required by each milestone.
 - Avoid feature-to-feature implementation dependencies; connect through app
   navigation and narrowly shared contracts.
 
-Current catalogue slice uses JVM-only `:core:model`, `:core:data`, and
-`:source:reanime`, with a catalog-driven `reanime-kotlin-library` convention.
+Current catalogue slice uses JVM-only `:core:model`, `:core:network`, `:core:data`,
+and `:source:reanime`, with a catalog-driven `reanime-kotlin-library` convention.
 `core:model` temporarily houses the narrow CatalogueRepository contract alongside
 immutable persistent catalogue collections; it does not depend on source or data
 implementations. `core:data` implements the contract with a monotonic-clock,
 five-minute, per-mirror cache and serializes cache fills through a mutex. Failures
 are not cached. Extract a dedicated API/domain module only when justified.
 
-The app composition root binds the source/repository through Koin. Browse depends
-only on the model/contract, not the source implementation. Coil uses a separate
-credential-free client with redirect following disabled. Room and DataStore are
-not part of this slice; cached metadata is lost when the process exits.
+The app composition root loads `networkModule(userAgent)`, catalogue bindings, and
+home bindings through Koin. Home depends only on model/repository contracts, not
+source or network implementations. Ktor engines, timeout/redirect/retry policies,
+bounded HTML reads, response validation, and generic HTTP/I/O failures live in
+`core:network`. `NetworkClient.getHtml` is the current narrow transport contract;
+do not build an unused generic request framework for future features.
+
+The source receives NetworkClient, constructs the selected mirror's endpoint,
+parses through Ksoup off the main thread, and translates NetworkError to its
+CatalogueError. No Ktor client is constructed in source or screen code. The app
+provides a version-derived User-Agent through BuildConfig instead of hardcoding
+the application version inside a source.
+
+The network module owns independently qualified CATALOGUE and ARTWORK clients.
+Coil receives the artwork client at the application composition root. Both clients
+are credential-free, do not automatically follow redirects/retry, and close when
+their Koin application closes. Clients are constructed through Ktor's engine-factory
+overload so closing a client also closes its owned engine; tests verify both jobs
+complete. Future authenticated/update traffic must use an
+appropriate separate policy/client; never broaden a shared client's credentials.
+Room/DataStore are not part of this slice; cached metadata is lost on process exit.
+
+Screen features are split by responsibility. The old `:feature:browse` is renamed
+to `:feature:home` including package, resource namespace, Screen contracts, DI,
+navigation, tests, and CI task/report paths. Create search/details/library/settings
+modules when those features land, not empty data/domain/presentation module trees.
 
 ## 5. MVI presentation contract
 
@@ -206,8 +235,8 @@ Each feature owns explicit contracts, immutable state, deterministic transitions
 and operation-specific concurrency. AndroidX ViewModel is a lifecycle host, not
 an alternative to MVI. No additional MVI framework is required initially.
 
-Contract names are feature-prefixed: `BrowseScreenState`, `BrowseScreenAction`,
-`BrowseScreenViewModel`, and, only when needed, `BrowseScreenEvent`. ScreenActions
+Contract names are feature-prefixed: `HomeScreenState`, `HomeScreenAction`,
+`HomeScreenViewModel`, and, only when needed, `HomeScreenEvent`. ScreenActions
 are incoming UI actions; ScreenEvents are transient outgoing UI commands. This
 naming replaces UiState/UiIntent/UiEffect terminology. Internal async results can
 remain separate from user actions; do not generate empty ScreenEvent contracts.
@@ -255,6 +284,25 @@ the base URL, do not forward credentials between domains blindly, and distinguis
 domain/API/media-host failure. A remotely updated signed mirror registry is deferred.
 
 ### Error taxonomy
+
+Use the common `com.reanime.core.model.result.Result<out D, out E : Error>`:
+
+- `Result.Success(data)` and `Result.Failure(error)` are the only outcome variants.
+- `Error` is a public marker interface, not Throwable. It stays open so domain
+  modules can implement it with enums/sealed types. There is no catch-all message
+  string, stack trace, or network implementation dependency on this contract.
+- CatalogueError implements Error. NetworkError is a sealed transport-level Error
+  with connection/timeout/invalid-request/response/size cases and an HTTP status
+  variant. A source maps these into domain-owned catalogue failures.
+- Repositories/sources/parsers return `Result<CatalogueHome, CatalogueError>`;
+  there is no longer a separate CatalogueResult hierarchy or compatibility alias.
+- `map` transforms success and `mapError` transforms failures without swallowing
+  exceptions or invoking the wrong branch. Import Result explicitly to distinguish
+  it from kotlin.Result. Do not create EpisodeError until episodes are implemented;
+  its real cases should implement the same Error contract.
+- Cancellation, programming defects, and fatal errors are not normal result values.
+  Do not introduce a blanket Throwable/Exception catch to force everything into
+  Result.Failure. Screen events remain transient UI commands, not result wrappers.
 
 At minimum: offline, timeout, rate limited, access blocked, remote contract changed,
 missing source, expired source, unsupported format/decoder, media-host failure,
@@ -537,8 +585,8 @@ actual evidence as implementation proceeds.
 
 ### Current implementation evidence
 
-- Modules present: `:app`, `:core:model`, `:core:data`, `:core:designsystem`,
-  `:source:reanime`, `:feature:browse`, and the included build's `:convention` module.
+- Modules present: `:app`, `:core:model`, `:core:network`, `:core:data`, `:core:designsystem`,
+  `:source:reanime`, `:feature:home`, and the included build's `:convention` module.
 - Native home rows, manual mirror controls, loading/refresh/error states, Coil
   artwork wiring, and cancellation-safe MVI. Cards are deliberately not playback
   buttons; title details, search, and episode browsing are still pending.
@@ -582,6 +630,22 @@ actual evidence as implementation proceeds.
   behavior, saved-state process recreation, and media still need device validation.
 - Existing toolchain/ktlint/Detekt dependencies emit deprecation warnings. Checks
   were not disabled or baselined to accommodate the new code.
+
+### Networking / shared-result refactor verification
+
+- `./gradlew verifyFoundation verifyRelease --console=plain --continue` passes
+  with `:core:network` and the renamed `:feature:home` included in checks/reports.
+- **40 Kotlin/JVM tests** pass: shared Result mapping (5), network transport/DI
+  lifecycle (11), home state/ViewModel (10), source mapping/parsing (9), repository
+  cache (4), and app DI/source/parser integration with fake transport (1).
+- **13 CI-helper tests**, actionlint (without unavailable ShellCheck), and Git
+  whitespace checks pass. No checks/baselines were relaxed for the refactor.
+- Re-ran the opt-in JVM probe through the shared client: **3 sections / 36 cards**.
+- No direct Ktor imports/client factories remain in source main code; no old
+  CatalogueResult or Browse contracts/module references remain in executable code.
+- The developer reported that the previous app build launched on a device. Full
+  device tests for this refactor, source/artwork access, playback, and downloads
+  remain separate verification steps; this report is not treated as proof of them.
 
 ## 14. Decisions still required
 

@@ -1,5 +1,7 @@
 package com.reanime.core.model.catalogue
 
+import com.reanime.core.model.result.Error
+import com.reanime.core.model.result.Result
 import kotlinx.collections.immutable.PersistentList
 
 enum class CatalogueMirror(val host: String) {
@@ -20,7 +22,7 @@ data class CatalogueSection(val kind: CatalogueSectionKind, val anime: Persisten
 
 data class CatalogueHome(val sections: PersistentList<CatalogueSection>)
 
-enum class CatalogueError {
+enum class CatalogueError : Error {
     NETWORK,
     TIMEOUT,
     ACCESS_BLOCKED,
@@ -31,11 +33,6 @@ enum class CatalogueError {
     LAYOUT_CHANGED
 }
 
-sealed interface CatalogueResult {
-    data class Success(val home: CatalogueHome) : CatalogueResult
-    data class Failure(val error: CatalogueError) : CatalogueResult
-}
-
 interface CatalogueRepository {
-    suspend fun home(mirror: CatalogueMirror, refresh: Boolean = false): CatalogueResult
+    suspend fun home(mirror: CatalogueMirror, refresh: Boolean = false): Result<CatalogueHome, CatalogueError>
 }

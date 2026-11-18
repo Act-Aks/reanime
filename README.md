@@ -45,13 +45,21 @@ Interaction inspiration comes from Nuvio, Cloudstream, and similar clients.
 - **Source controls:** manual mirror selection, actionable failures, and a
   five-minute in-memory metadata cache. No automatic mirror hopping or challenge bypass.
 - **Artwork:** Coil 3/Ktor wiring with a separate credential-free HTTP client.
+- **Shared networking:** `core:network` owns Ktor configuration and qualified,
+  independently managed catalogue/artwork clients, injected through Koin.
+- **Typed outcomes:** a shared `Result<D, E : Error>` contract with domain-owned
+  errors, replacing the catalogue-specific result hierarchy.
 - **Dependency wiring:** Koin with entry-scoped ViewModels.
 - **Build foundation:** catalog-driven convention plugins, formatting, static analysis, and tests.
 - **CI definitions:** PR-title validation, Android SDK/JDK setup, debug checks, and a minified release-build check.
 
-**Local verification:** 28 Kotlin/JVM unit tests and 13 CI-helper tests pass, along
+**Local verification:** 40 Kotlin/JVM unit tests and 13 CI-helper tests pass, along
 with formatting, Detekt, Android/JVM Lint, and debug/minified release builds.
-No device was connected for Android UI/network verification during this milestone.
+Coverage includes transport policy, DI client/engine isolation and lifecycle,
+shared result mapping, and the renamed Home feature. See the
+[architecture verification notes](docs/ARCHITECTURE.md) for details.
+The developer reported a successful app launch; full device/network/playback
+verification is not inferred from that report.
 
 ## Stack
 
@@ -155,7 +163,8 @@ flowchart TD
     R -->|ScreenState / StateFlow| UI
     VM --> Repo[Catalogue repository / in-memory cache]
     Repo -.-> Local[Room 3 / DataStore]
-    Repo --> Source[ReAnime home HTML / Ktor / Ksoup]
+    Repo --> Source[ReAnime endpoints / Ksoup]
+    Source --> Network[core:network / injected NetworkClient / Ktor]
     Source -.-> Media[Media3 playback / offline downloads]
 ```
 
@@ -164,13 +173,35 @@ Contracts are named `FeatureScreenState`, `FeatureScreenAction`, and
 commands with explicit delivery semantics. Media3 will own playback/download
 execution; MVI observes and controls it rather than duplicating its state machines.
 
+Each screen feature owns its MVI contracts, UI, and tests. The initial browse
+module is now `:feature:home`; search/details and other features will get separate
+modules when built. No empty feature scaffolding is added ahead of implementation.
+
+Network construction stays in `core:network`; source-specific endpoints, HTML
+parsing, and transport-to-domain error mapping stay in `source:reanime`. Features
+depend on repository contracts rather than networking implementations.
+
+```kotlin
+interface Error
+
+sealed interface Result<out D, out E : Error> {
+    data class Success<out D>(val data: D) : Result<D, Nothing>
+    data class Failure<out E : Error>(val error: E) : Result<Nothing, E>
+}
+```
+
+`CatalogueError` implements this contract. Future episode/player errors can do
+the same without adding another result wrapper. Errors are typed data, not raw
+exceptions or UI strings; cancellation and programming defects still propagate.
+
 ```text
 app/                       App setup, Koin, Navigation 3
 core/designsystem/         Initial Compose theme
-core/model/                Immutable catalogue models and repository contract
+core/model/                Models, repository contract, shared Result/Error
+core/network/              Ktor transport, HTTP policy/errors, qualified client DI
 core/data/                 Catalogue repository and in-memory cache
-source/reanime/            Ktor requests, Ksoup parser, fixtures, opt-in probe
-feature/browse/            Native catalogue screen, MVI contracts, unit tests
+source/reanime/            Source endpoints, Ksoup parser, error mapping, probe
+feature/home/              Native home screen, MVI contracts, unit tests
 build-logic/convention/    Compiled, catalog-driven Gradle plugins
 gradle/                    Version catalog and checksum-pinned wrapper
 .github/                   CI, helper tests, Dependabot, PR template

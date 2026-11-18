@@ -4,11 +4,9 @@ plugins {
 
 dependencies {
     implementation(projects.core.model)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
+    implementation(projects.core.network)
     implementation(libs.ksoup)
     implementation(libs.coroutines.core)
-    testImplementation(libs.ktor.client.mock)
 }
 
 tasks.register<JavaExec>("probeCatalogue") {

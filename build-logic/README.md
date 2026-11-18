@@ -52,7 +52,7 @@ Apply the Android base plugin before Compose/DI/testing conventions. Keep featur
 dependencies in their modules. Add Room/network conventions when those modules
 actually exist; do not create unused plugin scaffolding.
 
-Catalogue JVM modules (`core:model`, `core:data`, `source:reanime`) use the Kotlin
+Catalogue JVM modules (`core:model`, `core:network`, `core:data`, `source:reanime`) use the Kotlin
 library convention, not Android library/Compose plugins. Their tests and lint are
 explicitly included in `verifyFoundation`; live website probes are not.
 

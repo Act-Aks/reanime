@@ -27,6 +27,6 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "ReAnime"
 
 include(":app")
-include(":core:model", ":core:data", ":core:designsystem")
+include(":core:model", ":core:network", ":core:data", ":core:designsystem")
 include(":source:reanime")
-include(":feature:browse")
+include(":feature:home")

@@ -1,9 +1,10 @@
 package com.reanime.source.reanime
 
 import com.reanime.core.model.catalogue.CatalogueError
+import com.reanime.core.model.catalogue.CatalogueHome
 import com.reanime.core.model.catalogue.CatalogueMirror
-import com.reanime.core.model.catalogue.CatalogueResult
 import com.reanime.core.model.catalogue.CatalogueSectionKind
+import com.reanime.core.model.result.Result
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -13,14 +14,14 @@ class ReAnimeHomeParserTest {
 
     @Test
     fun `semantic sections parse without styles or executing scripts`() {
-        val result = parser.parse(homeFixture(), CatalogueMirror.CZ) as CatalogueResult.Success
+        val result = parser.parse(homeFixture(), CatalogueMirror.CZ) as Result.Success<CatalogueHome>
 
-        assertEquals(CatalogueSectionKind.entries, result.home.sections.map { it.kind })
-        val first = result.home.sections.first().anime.single()
+        assertEquals(CatalogueSectionKind.entries, result.data.sections.map { it.kind })
+        val first = result.data.sections.first().anime.single()
         assertEquals("moon-garden-abc123", first.id)
         assertEquals("Moon & Garden", first.title)
         assertEquals("https://s4.anilist.co/file/cover.jpg", first.posterUrl)
-        assertNull(result.home.sections[1].anime.single().posterUrl)
+        assertNull(result.data.sections[1].anime.single().posterUrl)
     }
 
     @Test
@@ -32,7 +33,7 @@ class ReAnimeHomeParserTest {
     @Test
     fun `unrecognized layout is not misreported as an empty catalogue`() {
         assertEquals(
-            CatalogueResult.Failure(CatalogueError.LAYOUT_CHANGED),
+            Result.Failure(CatalogueError.LAYOUT_CHANGED),
             parser.parse("<main><section><h2>Changed</h2></section></main>", CatalogueMirror.CZ)
         )
     }
@@ -40,7 +41,7 @@ class ReAnimeHomeParserTest {
     @Test
     fun `challenge page is reported rather than executed`() {
         assertEquals(
-            CatalogueResult.Failure(CatalogueError.ACCESS_BLOCKED),
+            Result.Failure(CatalogueError.ACCESS_BLOCKED),
             parser.parse("<html><title>Just a moment...</title></html>", CatalogueMirror.CZ)
         )
     }
