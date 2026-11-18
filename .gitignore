@@ -1,0 +1,63 @@
+# Machine-local OS/editor files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+
+# Gradle/Kotlin caches and generated output, including included builds
+.gradle/
+.kotlin/
+build/
+out/
+bin/
+.cache/
+
+# Android SDK/NDK configuration and generated native/navigation files
+local.properties
+.cxx/
+.externalNativeBuild/
+.navigation/
+captures/
+
+# Installable packages and locally prepared release artifacts
+*.apk
+*.aab
+*.apks
+*.xapk
+*.idsig
+/release-artifacts/
+
+# Logs, profiling, and JVM crash dumps
+*.log
+*.hprof
+*.jfr
+hs_err_pid*
+replay_pid*
+
+# Credentials and private signing material (never force-add these)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.p8
+*.pem
+*.key
+keystore.properties
+signing.properties
+secrets.properties
+.secrets/
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Keep the official wrapper, version catalog, Room schemas, and dependency
+# verification/lock files tracked. Do not ignore JARs, JSON, or lock files globally.

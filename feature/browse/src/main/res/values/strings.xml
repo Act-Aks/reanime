@@ -1,0 +1,9 @@
+<resources>
+  <string name="reanime_title">ReAnime</string>
+  <string name="foundation_status">Native foundation</string>
+  <string name="source_not_connected">The catalogue is not connected yet. Streaming and offline downloads will appear after source compatibility is verified.</string>
+  <string name="show_details">Show technical details</string>
+  <string name="hide_details">Hide technical details</string>
+  <string name="technical_details">Kotlin · Compose · MVI · Navigation 3 · Koin\nGitHub release repository: not configured.</string>
+  <string name="about_build">About this build</string>
+</resources>
