@@ -1,7 +1,7 @@
 # Re:ANIME Android architecture
 
-Status: minimal foundation and CI refinements locally verified; hosted CI rerun
-pending push. Source/media features remain unverified.
+Status: foundation CI green on main; home-catalogue integration implemented and
+live JVM fetch/parse verified. Android-device access and media features unverified.
 
 This document records agreed requirements, recommended implementation choices,
 and outstanding validation. `AGENTS.md` provides day-to-day contribution rules.
@@ -42,8 +42,8 @@ plugin system.
 - External/SAF download destinations and architecture-specific APKs: deferred.
 - Intro/outro skipping: only if reliable timestamp data is confirmed.
 
-No custom backend or KMP target is needed initially. Minimum Android API 26 is a
-recommendation pending dependency/device validation, not a configured build value.
+No custom backend or KMP target is needed initially. Minimum Android API 26 is
+configured; device validation is still required.
 
 ## 2. Source findings and feasibility gate
 
@@ -68,6 +68,32 @@ reported no streaming servers; browser-side source loading was not validated.
 A direct Python request received HTTP 403 while the page-fetch tool could read
 the page. Android access, API contracts, media URLs, subtitles, and downloads
 remain unverified. Mirrors may share failing backend dependencies.
+
+### Catalogue integration proof
+
+- Rechecked `/home`, `/robots.txt`, and `/terms` during this milestone. The terms
+  describe personal/noncommercial transitory viewing and prohibit reverse
+  engineering; they do not establish authorization to distribute this client,
+  branding, media, or offline copies. Distribution/content permissions remain open.
+- Implemented the observed server-rendered `main section` / `h2` / card `h3`
+  structure using Ksoup, without reverse engineering JavaScript/API internals.
+- The opt-in `:source:reanime:probeCatalogue` task made one direct Ktor/OkHttp
+  request and parsed **3 sections / 36 cards** successfully. This supersedes the
+  earlier Python 403 observation for this particular JVM client/environment only.
+- Home metadata is real when fetched; synthetic fixtures are used only in tests.
+  Never replace blocked/error states with fabricated catalogue results.
+- Automatic redirects/retries, cookie persistence, script execution, browser
+  challenge handling, and automatic mirror fallback are disabled/not implemented.
+- Manual CZ/BZ/WTF selection exists. Only CZ was live-probed in this milestone;
+  do not infer fresh availability or identity equivalence for every mirror.
+- The parser allows source IDs only from HTTPS verified mirror URLs and poster
+  URLs only from the observed HTTPS CDN allowlist. It rejects credential-bearing
+  URLs, nonstandard ports, arbitrary hosts, and encoded/invalid catalogue paths.
+- HTML reads are bounded to 2 MiB plus one overflow byte, have explicit timeouts,
+  validate HTTP/content type, and parse off the main thread. Failures map to typed
+  errors without exposing raw responses, exception messages, or sensitive URLs.
+- Android-device catalogue/artwork verification, details/search/episode requests,
+  stream resolution, native playback, and offline downloading are not proved yet.
 
 ### Gate before full feature investment
 
@@ -150,6 +176,19 @@ Wire only modules required by each milestone.
   separate API/domain module only when size/dependency pressure justifies it.
 - Avoid feature-to-feature implementation dependencies; connect through app
   navigation and narrowly shared contracts.
+
+Current catalogue slice uses JVM-only `:core:model`, `:core:data`, and
+`:source:reanime`, with a catalog-driven `reanime-kotlin-library` convention.
+`core:model` temporarily houses the narrow CatalogueRepository contract alongside
+immutable persistent catalogue collections; it does not depend on source or data
+implementations. `core:data` implements the contract with a monotonic-clock,
+five-minute, per-mirror cache and serializes cache fills through a mutex. Failures
+are not cached. Extract a dedicated API/domain module only when justified.
+
+The app composition root binds the source/repository through Koin. Browse depends
+only on the model/contract, not the source implementation. Coil uses a separate
+credential-free client with redirect following disabled. Room and DataStore are
+not part of this slice; cached metadata is lost when the process exits.
 
 ## 5. MVI presentation contract
 
@@ -430,6 +469,10 @@ Current workflow improvements:
   Configure that stable `CI` check as required in GitHub after it first runs.
 - Add new module report/test tasks when modules land. Device/emulator tests remain
   pending, and required checks/merge settings must be configured by a repo admin.
+- The catalogue JVM modules now have explicit formatting, Detekt, JUnit, and
+  standalone Android Lint tasks in `verifyFoundation`, with reports collected by
+  CI. No live probe is attached to these checks. Standalone lint lets the app's
+  dependency lint analyze JVM sources instead of treating them as opaque libraries.
 
 ### Protected release pipeline
 
@@ -494,12 +537,14 @@ actual evidence as implementation proceeds.
 
 ### Current implementation evidence
 
-- Modules present: `:app`, `:core:designsystem`, `:feature:browse`, plus the
-  `build-logic` included build's `:convention` plugin module.
-- Native placeholder screen, Navigation 3 home/about entries, Koin wiring, initial
-  dark theme, and ScreenState/ScreenAction/ScreenViewModel MVI example.
-- Five browse reducer/ViewModel tests pass, including saved-input re-creation
-  (not a full Android process-death instrumentation test).
+- Modules present: `:app`, `:core:model`, `:core:data`, `:core:designsystem`,
+  `:source:reanime`, `:feature:browse`, and the included build's `:convention` module.
+- Native home rows, manual mirror controls, loading/refresh/error states, Coil
+  artwork wiring, and cancellation-safe MVI. Cards are deliberately not playback
+  buttons; title details, search, and episode browsing are still pending.
+- Parser/URL validation, bounded requests, HTTP/content-type/errors/cancellation,
+  cache expiry/refresh/concurrency, reducers/restoration/stale results, and app DI
+  have deterministic unit coverage, not Android process-death instrumentation.
 - The earlier documented compatibility baseline passed `./gradlew verifyFoundation`
   locally, including convention checks, formatting, syntax-only Detekt, unit tests,
   Android Lint, and debug assembly.
@@ -510,18 +555,33 @@ actual evidence as implementation proceeds.
   refinement raises compile SDK to 37.0 without changing target SDK or reverting
   the user's dependency upgrades.
 - GitHub run `44305245950` failed before Gradle because `sdkmanager` was absent from
-  PATH. Explicit SDK-tools setup fixes that workflow gap; changes need a push and
-  a new hosted run to establish GitHub success.
+  PATH. After SDK setup and obsolete-package fixes, main run `44310599309` passed
+  on commit `926e39c`. New catalogue changes need their own hosted validation.
 - Final local verification passed `./gradlew verifyFoundation verifyRelease
   --console=plain --continue`, including all five browse tests, debug/release lint,
   debug assembly, R8, and release resource shrinking with compile SDK 37.0.
 - All 12 CI-helper test methods passed. Actionlint 1.7.12 validated workflow syntax,
   expressions, and action inputs. ShellCheck was unavailable and its integration
   was not run. These local checks do not claim a successful hosted SDK installation
-  or Linux build; the workflow still needs a new GitHub run after push.
+  or Linux build for the catalogue changes; those need a new GitHub run after push.
 - No release workflow, release signing, or updater is implemented.
 - No emulator/physical-device, source playback, download, database, or upgrade
   compatibility results are claimed yet.
+
+### Catalogue milestone verification
+
+- `./gradlew verifyFoundation verifyRelease --console=plain --continue` passes
+  after adding all three catalogue JVM modules, standalone lint, and app wiring.
+- **28 Kotlin/JVM tests** pass: app DI (1), browse reducers/ViewModel (10), source
+  parsing/network safety (13), repository cache/concurrency (4).
+- **13 CI-helper tests**, actionlint (without unavailable ShellCheck), and Git
+  whitespace checks pass. The new module tests/reports are included in CI.
+- Explicit live JVM probe: **3 home sections / 36 cards** fetched and parsed.
+  The probe is opt-in and is never part of ordinary CI/test tasks.
+- `adb devices -l` reported no connected device. Native UI, Android network/CDN
+  behavior, saved-state process recreation, and media still need device validation.
+- Existing toolchain/ktlint/Detekt dependencies emit deprecation warnings. Checks
+  were not disabled or baselined to accommodate the new code.
 
 ## 14. Decisions still required
 

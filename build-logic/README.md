@@ -46,10 +46,15 @@ dependencies in `convention/build.gradle.kts`.
 | `reanime-android-compose-di` | Shared Koin Android/Compose dependencies |
 | `reanime-android-testing` | JUnit and coroutine test dependencies |
 | `reanime-kotlin-quality` | Pinned ktlint and isolated syntax-only Detekt |
+| `reanime-kotlin-library` | JVM library, catalog JVM toolchain, JUnit/coroutine tests, quality checks, standalone Android Lint |
 
 Apply the Android base plugin before Compose/DI/testing conventions. Keep feature
 dependencies in their modules. Add Room/network conventions when those modules
 actually exist; do not create unused plugin scaffolding.
+
+Catalogue JVM modules (`core:model`, `core:data`, `source:reanime`) use the Kotlin
+library convention, not Android library/Compose plugins. Their tests and lint are
+explicitly included in `verifyFoundation`; live website probes are not.
 
 ## Adding or changing a convention
 

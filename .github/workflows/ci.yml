@@ -91,6 +91,12 @@ jobs:
             app/build/test-results/
             core/designsystem/build/reports/
             core/designsystem/build/test-results/
+            core/model/build/reports/
+            core/model/build/test-results/
+            core/data/build/reports/
+            core/data/build/test-results/
+            source/reanime/build/reports/
+            source/reanime/build/test-results/
             feature/browse/build/reports/
             feature/browse/build/test-results/
             build-logic/build/reports/

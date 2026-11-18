@@ -1,5 +1,5 @@
 <resources>
   <string name="about_title">About this build</string>
-  <string name="about_description">Native Kotlin foundation. Streaming, offline downloads, and GitHub updates are not connected yet.</string>
+  <string name="about_description">Native Kotlin catalogue integration preview. ReAnime reads public home-page cards with Ktor and Ksoup when the website permits the request. Streaming, offline downloads, and in-app updates are not connected yet. This is an unofficial client.</string>
   <string name="back">Back</string>
 </resources>

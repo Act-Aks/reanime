@@ -8,6 +8,10 @@ navigation3 = "1.2.1"
 koin = "4.2.2"
 coroutines = "1.11.0"
 serialization = "1.13.0"
+ktor = "3.6.1"
+ksoup = "0.2.6"
+coil = "3.6.3"
+immutable = "0.5.2"
 junit = "4.13.2"
 ktlint-plugin = "14.2.0"
 ktlint = "1.8.0"
@@ -46,17 +50,29 @@ coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", ve
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "serialization" }
 junit = { module = "junit:junit", version.ref = "junit" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+ksoup = { module = "com.fleeksoft.ksoup:ksoup", version.ref = "ksoup" }
+coil = { module = "io.coil-kt.coil3:coil", version.ref = "coil" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "immutable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-lint = { id = "com.android.lint", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+java-library = { id = "java-library" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-plugin" }
+
 reanime-android-application = { id = "reanime.android.application" }
 reanime-android-library = { id = "reanime.android.library" }
 reanime-android-compose = { id = "reanime.android.compose" }
 reanime-android-compose-di = { id = "reanime.android.compose.di" }
 reanime-android-testing = { id = "reanime.android.testing" }
 reanime-kotlin-quality = { id = "reanime.kotlin.quality" }
+reanime-kotlin-library = { id = "reanime.kotlin.library" }

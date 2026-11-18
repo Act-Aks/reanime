@@ -26,6 +26,9 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.model)
+    implementation(projects.core.data)
+    implementation(projects.source.reanime)
     implementation(projects.core.designsystem)
     implementation(projects.feature.browse)
     implementation(libs.compose.material3)
@@ -34,4 +37,7 @@ dependencies {
     implementation(libs.navigation3.ui)
     implementation(libs.lifecycle.viewmodel.navigation3)
     implementation(libs.serialization.core)
+    implementation(libs.ktor.client.core)
+    implementation(libs.coil)
+    implementation(libs.coil.network.ktor3)
 }

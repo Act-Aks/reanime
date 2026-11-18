@@ -42,6 +42,10 @@ gradlePlugin {
             id = libs.plugins.reanime.kotlin.quality.get().pluginId
             implementationClass = "com.reanime.convention.KotlinQualityConventionPlugin"
         }
+        register("kotlinLibrary") {
+            id = libs.plugins.reanime.kotlin.library.get().pluginId
+            implementationClass = "com.reanime.convention.KotlinLibraryConventionPlugin"
+        }
     }
 }
 
