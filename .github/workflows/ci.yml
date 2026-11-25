@@ -51,7 +51,7 @@ jobs:
         id: config
         run: python3 .github/scripts/ci_config.py
       - name: Install build and compilation JDKs
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           # The last JDK is the runtime; the first remains available as a toolchain.
