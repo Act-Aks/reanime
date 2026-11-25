@@ -65,7 +65,7 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - name: Set up Gradle and validate wrapper JARs
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
           validate-wrappers: true
           cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
