@@ -59,7 +59,7 @@ jobs:
             ${{ steps.config.outputs.toolchain_java }}
             ${{ steps.config.outputs.build_java }}
       - name: Set up Android command-line tools and accept SDK licenses
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           # v3 defaults to "tools platform-tools"; the legacy tools package is obsolete.
           packages: platform-tools
